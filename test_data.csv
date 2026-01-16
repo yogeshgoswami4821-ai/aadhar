@@ -1,13 +1,11 @@
-State,District,Enrolment,Gender,Update_Type
-Maharashtra,Mumbai,85000,Male,Address
-Maharashtra,Pune,72000,Female,Address
-Bihar,Patna,12000,Male,New
-Bihar,Gaya,8000,Female,New
-Uttar Pradesh,Lucknow,95000,Male,New
-Uttar Pradesh,Kanpur,88000,Female,Biometric
-Kerala,Kochi,45000,Male,New
-Kerala,Thrissur,42000,Male,Biometric
-Karnataka,Bangalore,78000,Female,Address
-Karnataka,Mysore,35000,Male,New
-Gujarat,Ahmedabad,62000,Female,Address
-West Bengal,Kolkata,55000,Female,New
+State,District,Tehsil,Enrolment
+Maharashtra,Mumbai,Andheri,85000
+Maharashtra,Mumbai,Borivali,72000
+Bihar,Patna,Sadar,12000
+Bihar,Patna,Danapur,8000
+Uttar Pradesh,Lucknow,Bakshi-Ka-Talab,95000
+Uttar Pradesh,Lucknow,Sarojini-Nagar,48000
+Gujarat,Ahmedabad,Daskroi,62000
+Gujarat,Ahmedabad,Sanand,31000
+Rajasthan,Jaipur,Sanganer,55000
+Rajasthan,Jaipur,Amer,15000
