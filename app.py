@@ -17,32 +17,34 @@ def analyze():
     
     file = request.files["file"]
     try:
-        # Optimization: Sirf zaroori columns read karein taaki RAM na bhare
+        # Optimization: Sirf zaroori columns read karein
         cols = ['State', 'District', 'Tehsil', 'Enrolment']
         
-        # 10 Lakh rows ko handle karne ke liye chunks use kar rahe hain
+        # 10 Lakh rows ke liye chunking zaruri hai
         chunk_list = []
-        for chunk in pd.read_csv(file, usecols=cols, chunksize=300000):
+        for chunk in pd.read_csv(file, usecols=cols, chunksize=200000):
+            # YAHAN ERROR THI: Ab ye line sahi indented hai
             chunk.columns = [c.strip() for c in chunk.columns]
-            # Har chunk ko turant aggregate karke chota kar dein
+            
+            # Turant data chota karein memory bachane ke liye
             summary = chunk.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
             chunk_list.append(summary)
 
-        # Final Merging
+        # Saare chunks merge karein
         df = pd.concat(chunk_list).groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
         avg_val = df['Enrolment'].mean()
         
         results = []
-        # JSON size chota rakhne ke liye sirf unique regions bhej rahe hain
         for _, row in df.iterrows():
             enrol = int(row['Enrolment'])
+            # Predictive Status Coding (R, Y, G)
             code = "R" if enrol < (avg_val * 0.5) else ("Y" if enrol < avg_val else "G")
             
             results.append({
                 "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
                 "enrolment": enrol,
                 "code": code,
-                "analysis": "Critical" if code == "R" else ("Warning" if code == "Y" else "Stable")
+                "analysis": "Critical Problem" if code == "R" else ("Warning" if code == "Y" else "Stable Pattern")
             })
 
         return jsonify({"patterns": results})
