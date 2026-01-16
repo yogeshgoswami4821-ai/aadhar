@@ -1,83 +1,80 @@
 let chart;
 
-function uploadCSV() {
-  const fileInput = document.getElementById("fileInput");
-  const file = fileInput.files[0];
+async function uploadCSV() {
+    const fileInput = document.getElementById("fileInput");
+    const btn = document.getElementById("uploadBtn");
+    
+    if (!fileInput.files[0]) return alert("Please select a file!");
 
-  if (!file) {
-    alert("Please upload a CSV file");
-    return;
-  }
+    btn.innerText = "Processing...";
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
 
-  const formData = new FormData();
-  formData.append("file", file);
+    try {
+        const res = await fetch("https://aadhar-o20a.onrender.com/upload", {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+        
+        document.getElementById("statsGrid").style.display = "grid";
+        document.getElementById("totalStat").innerText = data.summary.total_enrolment.toLocaleString();
+        document.getElementById("avgStat").innerText = data.summary.avg_by_state.toLocaleString();
 
-  fetch("https://aadhar-o20a.onrender.com/upload", {
-    method: "POST",
-    body: formData
-  })
-  .then(res => {
-    if (!res.ok) {
-      throw new Error("Backend error");
+        drawChart(data.states, data.enrolments);
+        processTrends(data);
+    } catch (err) {
+        alert("Server Error. Make sure backend is running.");
+    } finally {
+        btn.innerText = "Analyze Trends";
     }
-    return res.json();
-  })
-  .then(data => {
-    drawChart(data.states, data.enrolments);
-    showInsights(data.states, data.enrolments);
-  })
-  .catch(err => {
-    alert("Backend not reachable or still waking up (wait 30–50 sec on free tier)");
-    console.error(err);
-  });
 }
 
-function drawChart(states, values) {
-  const ctx = document.getElementById("enrolmentChart");
-
-  if (chart) chart.destroy();
-
-  chart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: states,
-      datasets: [{
-        label: "Aadhaar Enrolments",
-        data: values,
-        backgroundColor: values.map(v =>
-          v < 30000 ? "#ef4444" :   // 🔴 Low
-          v < 60000 ? "#facc15" :   // 🟡 Medium
-          "#22c55e"                 // 🟢 Healthy
-        )
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          display: true
+function drawChart(labels, values) {
+    const ctx = document.getElementById("enrolmentChart").getContext("2d");
+    if (chart) chart.destroy();
+    
+    chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Enrolment Count",
+                data: values,
+                backgroundColor: values.map(v => v > 50000 ? "#22c55e" : "#ef4444"),
+                borderRadius: 5
+            }]
         }
-      }
-    }
-  });
+    });
 }
 
-function showInsights(states, values) {
-  const list = document.getElementById("insightList");
-  list.innerHTML = "";
+function processTrends(data) {
+    const list = document.getElementById("insightList");
+    list.innerHTML = "";
 
-  states.forEach((state, i) => {
-    let msg = "";
-    if (values[i] < 30000) {
-      msg = `🔴 ${state}: Low enrolment – awareness campaign needed`;
-    } else if (values[i] < 60000) {
-      msg = `🟡 ${state}: Moderate enrolment – monitor closely`;
-    } else {
-      msg = `🟢 ${state}: Healthy enrolment – system stable`;
+    // Trend 1: Low Saturation
+    data.states.forEach((state, i) => {
+        if (data.enrolments[i] < data.summary.avg_by_state * 0.5) {
+            addInsight(list, `Critical: ${state} is below 50% of national average.`, "red");
+        }
+    });
+
+    // Trend 2: Gender Gap
+    for (let state in data.female_ratio) {
+        if (data.female_ratio[state] < 0.45) {
+            addInsight(list, `Gender Gap: High male-female disparity in ${state}.`, "yellow");
+        }
     }
 
+    // Trend 3: Migration
+    data.migration_hotspots.forEach(state => {
+        addInsight(list, `Migration Trend: High address updates detected in ${state}.`, "blue");
+    });
+}
+
+function addInsight(target, text, type) {
     const li = document.createElement("li");
-    li.textContent = msg;
-    list.appendChild(li);
-  });
+    li.className = `insight-item ${type}`;
+    li.innerText = text;
+    target.appendChild(li);
 }
