@@ -8,41 +8,40 @@ CORS(app)
 
 @app.route("/")
 def health():
-    return "Aadhaar Backend Online"
+    return "Backend is Active"
 
 @app.route("/upload", methods=["POST"])
 def analyze():
     if "file" not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-    
-    file = request.files["file"]
+        return jsonify({"error": "No file"}), 400
     try:
-        # Aapka data read ho raha hai
-        df = pd.read_csv(file)
-        df.columns = [c.strip() for c in df.columns] # Spaces hatane ke liye
+        f = request.files["file"]
+        # Har tarah ki CSV read karne ke liye logic
+        df = pd.read_csv(f, skipinitialspace=True)
+        df.columns = [c.strip() for c in df.columns]
         
-        # Data aggregation
+        # Enrolment ko number mein convert karna (Safety check)
+        df['Enrolment'] = pd.to_numeric(df['Enrolment'], errors='coerce').fillna(0)
+        
         grouped = df.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
         avg_val = grouped['Enrolment'].mean()
         
         results = []
-        for _, row in grouped.iterrows():
-            enrol = int(row['Enrolment'])
-            # R-Y-G Status Logic
+        for _, r in grouped.iterrows():
+            enrol = int(r['Enrolment'])
+            # R-Y-G Logic
             code = "G"
             if enrol < (avg_val * 0.5): code = "R"
             elif enrol < avg_val: code = "Y"
             
             results.append({
-                "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
+                "place": f"{r['State']} > {r['District']} > {r['Tehsil']}",
                 "enrolment": enrol,
                 "code": code,
-                "analysis": "Stable" if code == "G" else ("Moderate" if code == "Y" else "Critical")
+                "analysis": "Critical" if code == "R" else ("Moderate" if code == "Y" else "Stable")
             })
-        
         return jsonify({"patterns": results})
     except Exception as e:
-        # Agar koi error aaye toh frontend ko pata chale
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
