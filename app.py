@@ -8,38 +8,41 @@ CORS(app)
 
 @app.route("/")
 def health():
-    return "Backend Live"
+    return "Aadhaar Backend Online"
 
 @app.route("/upload", methods=["POST"])
 def analyze():
     if "file" not in request.files:
-        return jsonify({"error": "No file"}), 400
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    file = request.files["file"]
     try:
-        f = request.files["file"]
-        # Fast processing for your sample data
-        df = pd.read_csv(f)
-        df.columns = [c.strip() for c in df.columns]
+        # Aapka data read ho raha hai
+        df = pd.read_csv(file)
+        df.columns = [c.strip() for c in df.columns] # Spaces hatane ke liye
         
-        # Grouping by State > District > Tehsil
+        # Data aggregation
         grouped = df.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
         avg_val = grouped['Enrolment'].mean()
         
         results = []
-        for i, r in grouped.iterrows():
-            enrol = int(r['Enrolment'])
-            # R-Y-G Logic based on average
+        for _, row in grouped.iterrows():
+            enrol = int(row['Enrolment'])
+            # R-Y-G Status Logic
             code = "G"
             if enrol < (avg_val * 0.5): code = "R"
             elif enrol < avg_val: code = "Y"
             
             results.append({
-                "place": f"{r['State']} > {r['District']} > {r['Tehsil']}",
+                "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
                 "enrolment": enrol,
                 "code": code,
-                "analysis": "Stable" if code=="G" else ("Moderate" if code=="Y" else "Critical")
+                "analysis": "Stable" if code == "G" else ("Moderate" if code == "Y" else "Critical")
             })
+        
         return jsonify({"patterns": results})
     except Exception as e:
+        # Agar koi error aaye toh frontend ko pata chale
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
