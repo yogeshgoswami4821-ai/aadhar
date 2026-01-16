@@ -8,32 +8,32 @@ CORS(app)
 
 @app.route("/")
 def health():
-    return "Aadhaar Backend is Online"
+    return "Backend is Live"
 
 @app.route("/upload", methods=["POST"])
 def analyze():
     if "file" not in request.files:
-        return jsonify({"error": "⚠️ No file found in request!"}), 400
+        return jsonify({"error": "No file uploaded"}), 400
     
     file = request.files["file"]
     try:
-        # Step 1: File reading
-        df = pd.read_csv(file)
-        df.columns = [c.strip() for c in df.columns]
+        # Use only required columns to save memory
+        cols = ['State', 'District', 'Tehsil', 'Enrolment']
         
-        # Step 2: Specific Warning Check for Columns
-        required_cols = ['State', 'District', 'Tehsil', 'Enrolment']
-        missing = [c for c in required_cols if c not in df.columns]
-        if missing:
-            return jsonify({"error": f"⚠️ Missing Columns: {', '.join(missing)}. Please check your CSV headers."}), 400
+        # Fast Chunking Logic
+        chunk_list = []
+        for chunk in pd.read_csv(file, usecols=cols, chunksize=300000):
+            chunk.columns = [c.strip() for c in chunk.columns]
+            # Pre-aggregate each chunk
+            summary = chunk.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
+            chunk_list.append(summary)
 
-        # Step 3: Calculation Logic
-        df['Enrolment'] = pd.to_numeric(df['Enrolment'], errors='coerce').fillna(0)
-        grouped = df.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
-        avg_val = grouped['Enrolment'].mean()
+        # Final aggregation
+        df = pd.concat(chunk_list).groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
+        avg_val = df['Enrolment'].mean()
         
         results = []
-        for _, row in grouped.iterrows():
+        for _, row in df.iterrows():
             enrol = int(row['Enrolment'])
             code = "G"
             if enrol < (avg_val * 0.5): code = "R"
@@ -43,14 +43,12 @@ def analyze():
                 "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
                 "enrolment": enrol,
                 "code": code,
-                "analysis": "Critical" if code == "R" else ("Moderate" if code == "Y" else "Stable")
+                "analysis": "Critical" if code == "R" else ("Warning" if code == "Y" else "Stable")
             })
             
         return jsonify({"patterns": results})
-
     except Exception as e:
-        return jsonify({"error": f"❌ Server Error: {str(e)}"}), 500
+        return jsonify({"error": f"Memory/Processing Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
