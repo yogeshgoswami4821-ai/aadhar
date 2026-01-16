@@ -1,84 +1,53 @@
-let chart;
+let allData = [];
 
 async function uploadCSV() {
     const fileInput = document.getElementById("fileInput");
     const btn = document.getElementById("uploadBtn");
     
-    if (!fileInput.files[0]) return alert("Please select a file!");
+    if (!fileInput.files[0]) return alert("Please select a CSV!");
 
-    btn.innerText = "Processing...";
+    btn.innerText = "Analyzing...";
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
     try {
-        // Aapka naya Render URL yahan update kar diya gaya hai
         const res = await fetch("https://aadhar-o9nr.onrender.com/upload", {
             method: "POST",
             body: formData
         });
-
-        if (!res.ok) throw new Error("Backend error");
-
         const data = await res.json();
-        
-        document.getElementById("statsGrid").style.display = "grid";
-        document.getElementById("totalStat").innerText = data.summary.total_enrolment.toLocaleString();
-        document.getElementById("avgStat").innerText = data.summary.avg_by_state.toLocaleString();
-
-        drawChart(data.states, data.enrolments);
-        processTrends(data);
+        allData = data.patterns;
+        displayCards(allData);
     } catch (err) {
-        // Render free tier pehli baar jaagne mein 30-50 seconds leta hai
-        alert("Server is waking up. Please wait 30 seconds and try again.");
-        console.error(err);
+        alert("Server wake-up in progress. Try again in 30 seconds.");
     } finally {
-        btn.innerText = "Analyze Trends";
+        btn.innerText = "Analyze Hierarchy";
     }
 }
 
-function drawChart(labels, values) {
-    const ctx = document.getElementById("enrolmentChart").getContext("2d");
-    if (chart) chart.destroy();
-    
-    chart = new Chart(ctx, {
-        type: "bar",
-        data: {
-            labels: labels,
-            datasets: [{
-                label: "Enrolment Count",
-                data: values,
-                backgroundColor: values.map(v => v > 50000 ? "#22c55e" : "#ef4444"),
-                borderRadius: 5
-            }]
-        }
+function displayCards(data) {
+    const container = document.getElementById("resultContainer");
+    container.innerHTML = "";
+
+    data.forEach(item => {
+        const card = document.createElement("div");
+        const colorClass = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
+        
+        card.className = `status-card ${colorClass}`;
+        card.innerHTML = `
+            <div class="badge">${item.code}</div>
+            <h3>${item.place}</h3>
+            <p><strong>Enrolment:</strong> ${item.enrolment}</p>
+            <p><strong>Analysis:</strong> ${item.analysis}</p>
+        `;
+        container.appendChild(card);
     });
 }
 
-function processTrends(data) {
-    const list = document.getElementById("insightList");
-    list.innerHTML = "";
-
-    data.states.forEach((state, i) => {
-        if (data.enrolments[i] < data.summary.avg_by_state * 0.5) {
-            addInsight(list, `Critical: ${state} saturation is very low.`, "red");
-        }
-    });
-
-    for (let state in data.female_ratio) {
-        if (data.female_ratio[state] < 0.45) {
-            addInsight(list, `Gender Gap: Female enrolment is low in ${state}.`, "yellow");
-        }
-    }
-
-    data.migration_hotspots.forEach(state => {
-        addInsight(list, `Migration: High address updates in ${state}.`, "blue");
-    });
+function filterData() {
+    const query = document.getElementById("searchInput").value.toUpperCase();
+    const filtered = allData.filter(item => 
+        item.place.toUpperCase().includes(query) || item.code.toUpperCase() === query
+    );
+    displayCards(filtered);
 }
-
-function addInsight(target, text, type) {
-    const li = document.createElement("li");
-    li.className = `insight-item ${type}`;
-    li.innerText = text;
-    target.appendChild(li);
-}
-
