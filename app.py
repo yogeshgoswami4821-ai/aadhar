@@ -8,7 +8,7 @@ CORS(app)
 
 @app.route("/")
 def health():
-    return "Aadhaar Backend Live"
+    return "Aadhaar Backend is Online"
 
 @app.route("/upload", methods=["POST"])
 def analyze():
@@ -17,38 +17,37 @@ def analyze():
     
     file = request.files["file"]
     try:
-        # Step 1: Memory optimization for 1M+ rows
+        # Optimization: Sirf zaroori columns read karein taaki RAM na bhare
         cols = ['State', 'District', 'Tehsil', 'Enrolment']
-        chunk_list = []
         
-        # Data ko 2 Lakh ke chunks mein process karenge
-        for chunk in pd.read_csv(file, usecols=cols, chunksize=200000):
+        # 10 Lakh rows ko handle karne ke liye chunks use kar rahe hain
+        chunk_list = []
+        for chunk in pd.read_csv(file, usecols=cols, chunksize=300000):
             chunk.columns = [c.strip() for c in chunk.columns]
-            # Immediate aggregation to save RAM
+            # Har chunk ko turant aggregate karke chota kar dein
             summary = chunk.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
             chunk_list.append(summary)
 
-        # Step 2: Final Data Merging
-        df_final = pd.concat(chunk_list).groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
-        avg_val = df_final['Enrolment'].mean()
+        # Final Merging
+        df = pd.concat(chunk_list).groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
+        avg_val = df['Enrolment'].mean()
         
         results = []
-        # Browser crash na ho isliye top results dikhayenge
-        for _, row in df_final.iterrows():
-            enrol = row['Enrolment']
+        # JSON size chota rakhne ke liye sirf unique regions bhej rahe hain
+        for _, row in df.iterrows():
+            enrol = int(row['Enrolment'])
             code = "R" if enrol < (avg_val * 0.5) else ("Y" if enrol < avg_val else "G")
             
             results.append({
                 "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
-                "enrolment": int(enrol),
+                "enrolment": enrol,
                 "code": code,
-                "analysis": "Critical" if code == "R" else ("Moderate" if code == "Y" else "Stable")
+                "analysis": "Critical" if code == "R" else ("Warning" if code == "Y" else "Stable")
             })
 
         return jsonify({"patterns": results})
-
     except Exception as e:
-        return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
