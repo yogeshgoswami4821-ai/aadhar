@@ -5,26 +5,26 @@ async function uploadCSV() {
     const btn = document.getElementById("uploadBtn");
     const container = document.getElementById("resultContainer");
     
+    // Previous results aur warnings saaf karein
     container.innerHTML = "";
-    if (!fileInput.files[0]) return alert("Please select a file!");
-
-    btn.innerText = "⚡ Processing Million Rows...";
-    btn.disabled = true;
     
-    // Naya Warning/Status Loader
-    container.innerHTML = `
-        <div style="padding: 20px; background: #e3f2fd; border-left: 5px solid #2196f3; margin: 20px 0;">
-            <p>🔄 <b>Analyzing Aadhaar Hierarchy...</b></p>
-            <p style="font-size: 0.85em;">Note: 10 Lakh rows can take 60-90 seconds on Free Tier. Please don't refresh.</p>
-        </div>`;
+    if (!fileInput.files || !fileInput.files[0]) {
+        alert("Please select a CSV file first!");
+        return;
+    }
+
+    // UI State update
+    btn.innerText = "⚡ Processing...";
+    btn.disabled = true;
+    container.innerHTML = `<div class='loader'>🔄 Analyzing Data... Please wait up to 90s for large files.</div>`;
 
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
     try {
         const controller = new AbortController();
-        // Timeout badha kar 5 minute kar diya hai demo ke liye
-        const timeoutId = setTimeout(() => controller.abort(), 300000); 
+        // Timeout 3 mins for large datasets
+        const timeoutId = setTimeout(() => controller.abort(), 180000); 
 
         const res = await fetch("https://aadhar-o9nr.onrender.com/upload", {
             method: "POST",
@@ -35,12 +35,13 @@ async function uploadCSV() {
         clearTimeout(timeoutId);
         const data = await res.json();
         
+        // Backend error validation
         if (!res.ok || data.error) {
             container.innerHTML = `
-                <div style="background: #fff5f5; border: 2px solid #ff4d4d; padding: 20px; border-radius: 8px; color: #cc0000;">
-                    <h3>⚠️ SYSTEM WARNING</h3>
-                    <p>${data.error || "File size too large for free server."}</p>
-                    <p><b>Quick Fix:</b> Try a file with 1-5 Lakh rows for instant demo.</p>
+                <div style="background: #fff5f5; border: 2px solid #ff4d4d; padding: 15px; border-radius: 8px; color: #cc0000; margin-top: 20px;">
+                    <h3 style="margin: 0 0 10px 0;">⚠️ SYSTEM WARNING</h3>
+                    <p>${data.error || "Server Busy or Analysis Failed"}</p>
+                    <small>Check if CSV has: State, District, Tehsil, Enrolment</small>
                 </div>`;
             return;
         }
@@ -49,11 +50,12 @@ async function uploadCSV() {
         displayCards(allData);
 
     } catch (err) {
-        let msg = err.name === 'AbortError' ? "Server Timeout (Data too heavy)" : "Connection Lost";
+        // Timeout aur connection error handling
+        let msg = err.name === 'AbortError' ? "Server Timeout (Data too large)" : "Backend Connection Failed";
         container.innerHTML = `
-            <div style="background: #fff9db; border: 2px solid #fcc419; padding: 20px; border-radius: 8px; color: #856404;">
+            <div style="background: #fff9db; border: 2px solid #fcc419; padding: 15px; border-radius: 8px; color: #856404; margin-top: 20px;">
                 <p>⚠️ <b>${msg}</b></p>
-                <p>Render's Free Tier has limited RAM. For a smooth demo, please use a file with fewer rows.</p>
+                <p>Render Free Tier limits exceeded. Use a smaller sample file (e.g. 2 Lakh rows) for the demo.</p>
             </div>`;
     } finally {
         btn.innerText = "Analyze Hierarchy";
@@ -64,12 +66,19 @@ async function uploadCSV() {
 function displayCards(data) {
     const container = document.getElementById("resultContainer");
     container.innerHTML = ""; 
-    
-    // Performance: Only show top 300 cards
+
+    if (!data || data.length === 0) {
+        container.innerHTML = "<p>No data found.</p>";
+        return;
+    }
+
+    // Performance limit to prevent browser crash
     data.slice(0, 300).forEach(item => {
-        const color = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
+        // R-Y-G Coding based on backend status
+        const colorClass = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
+        
         const card = document.createElement("div");
-        card.className = `status-card ${color}`;
+        card.className = `status-card ${colorClass}`;
         card.innerHTML = `
             <div class="badge">${item.code}</div>
             <div class="card-info">
@@ -83,6 +92,9 @@ function displayCards(data) {
 
 function filterData() {
     const query = document.getElementById("searchInput").value.toUpperCase();
-    const filtered = allData.filter(i => i.place.toUpperCase().includes(query) || i.code === query);
+    const filtered = allData.filter(i => 
+        i.place.toUpperCase().includes(query) || 
+        i.code.toUpperCase() === query
+    );
     displayCards(filtered);
 }
