@@ -8,7 +8,7 @@ CORS(app)
 
 @app.route("/")
 def health():
-    return "Aadhaar Backend is Online"
+    return "Backend is Online"
 
 @app.route("/upload", methods=["POST"])
 def analyze():
@@ -17,34 +17,30 @@ def analyze():
     
     file = request.files["file"]
     try:
-        # Step 1: Optimization
+        # Step 1: Memory optimization
         cols = ['State', 'District', 'Tehsil', 'Enrolment']
-        chunk_list = []
         
-        # Step 2: Proper Indentation (Error yahan thi)
-        for chunk in pd.read_csv(file, usecols=cols, chunksize=200000):
-            # Is line ko bilkul aise hi paste karein
-            chunk.columns = [c.strip() for c in chunk.columns]
-            
-            # Step 3: Immediate Aggregation
-            summary = chunk.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
-            chunk_list.append(summary)
-
-        # Step 4: Final Merging
-        df = pd.concat(chunk_list).groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
-        avg_val = df['Enrolment'].mean()
+        # Simple loading strategy for Render Free Tier
+        df = pd.read_csv(file, usecols=cols)
+        df.columns = [c.strip() for c in df.columns]
+        
+        # Step 2: Grouping and Analysis
+        df_grouped = df.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
+        avg_val = df_grouped['Enrolment'].mean()
         
         results = []
-        for _, row in df.iterrows():
+        for index, row in df_grouped.iterrows():
             enrol = int(row['Enrolment'])
-            # R-Y-G Status Logic
-            code = "R" if enrol < (avg_val * 0.5) else ("Y" if enrol < avg_val else "G")
+            # R-Y-G Coding Logic
+            status_code = "G"
+            if enrol < (avg_val * 0.5): status_code = "R"
+            elif enrol < avg_val: status_code = "Y"
             
             results.append({
                 "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
                 "enrolment": enrol,
-                "code": code,
-                "analysis": "Critical" if code == "R" else ("Moderate" if code == "Y" else "Stable")
+                "code": status_code,
+                "analysis": "Critical" if status_code == "R" else ("Moderate" if status_code == "Y" else "Stable")
             })
 
         return jsonify({"patterns": results})
