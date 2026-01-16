@@ -6,10 +6,6 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/")
-def health():
-    return "Engine Operational - Ready for Big Data"
-
 @app.route("/upload", methods=["POST"])
 def analyze():
     if "file" not in request.files:
@@ -17,40 +13,36 @@ def analyze():
     
     file = request.files["file"]
     try:
-        # Step 1: Optimized Reading (Sirf zaroori data)
-        # 10 Lakh rows ko handle karne ke liye chunksize 500,000 rakhein
+        # Optimization: Sirf zaroori columns read karein taaki RAM crash na ho
         cols = ['State', 'District', 'Tehsil', 'Enrolment']
-        df_list = []
         
-        for chunk in pd.read_csv(file, usecols=cols, chunksize=500000):
+        # Data ko 2 lakh rows ke chunks mein read karenge taaki timeout na ho
+        chunk_list = []
+        for chunk in pd.read_csv(file, usecols=cols, chunksize=200000):
             chunk.columns = [c.strip() for c in chunk.columns]
-            # Chunk level aggregation memory bachaati hai
-            df_list.append(chunk.groupby(['State', 'District', 'Tehsil']).sum().reset_index())
-        
-        df = pd.concat(df_list).groupby(['State', 'District', 'Tehsil']).sum().reset_index()
-        
-        # Step 2: Hierarchical Status Coding (R, Y, G)
-        avg_val = df['Enrolment'].mean()
+            # Har chunk ko turant aggregate karein memory bachaane ke liye
+            summary = chunk.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
+            chunk_list.append(summary)
+
+        # Saare aggregated chunks ko final merge karein
+        df_final = pd.concat(chunk_list).groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
+        avg_val = df_final['Enrolment'].mean()
         
         results = []
-        # Browser crash na ho isliye top results limit karein
-        for _, row in df.head(1000).iterrows():
-            val = row['Enrolment']
-            if val < (avg_val * 0.5): code = "R"
-            elif val < avg_val: code = "Y"
-            else: code = "G"
+        # Browser performance ke liye top 1000 results hi return karenge
+        for _, row in df_final.iterrows():
+            enrol = row['Enrolment']
+            code = "R" if enrol < (avg_val * 0.5) else ("Y" if enrol < avg_val else "G")
+            analysis = "Critical Problem: Low Saturation" if code == "R" else ("Warning: Moderate" if code == "Y" else "Stable Pattern")
 
             results.append({
                 "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
-                "enrolment": int(val),
+                "enrolment": int(enrol),
                 "code": code,
-                "analysis": "Critical" if code == "R" else ("Moderate" if code == "Y" else "Stable")
+                "analysis": analysis
             })
 
-        return jsonify({
-            "patterns": results,
-            "summary": {"total_regions": len(df)}
-        })
+        return jsonify({"patterns": results})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
