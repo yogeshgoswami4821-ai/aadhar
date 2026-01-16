@@ -11,10 +11,14 @@ async function uploadCSV() {
     formData.append("file", fileInput.files[0]);
 
     try {
-        const res = await fetch("https://aadhar-o20a.onrender.com/upload", {
+        // Updated URL to your new active backend
+        const res = await fetch("https://aadhar-o9nr.onrender.com/upload", {
             method: "POST",
             body: formData
         });
+
+        if (!res.ok) throw new Error("Backend error");
+
         const data = await res.json();
         
         document.getElementById("statsGrid").style.display = "grid";
@@ -24,7 +28,8 @@ async function uploadCSV() {
         drawChart(data.states, data.enrolments);
         processTrends(data);
     } catch (err) {
-        alert("Server Error. Make sure backend is running.");
+        alert("Server is waking up. Please wait 30 seconds and try again.");
+        console.error(err);
     } finally {
         btn.innerText = "Analyze Trends";
     }
@@ -52,23 +57,20 @@ function processTrends(data) {
     const list = document.getElementById("insightList");
     list.innerHTML = "";
 
-    // Trend 1: Low Saturation
     data.states.forEach((state, i) => {
         if (data.enrolments[i] < data.summary.avg_by_state * 0.5) {
-            addInsight(list, `Critical: ${state} is below 50% of national average.`, "red");
+            addInsight(list, `Critical: ${state} saturation is very low.`, "red");
         }
     });
 
-    // Trend 2: Gender Gap
     for (let state in data.female_ratio) {
         if (data.female_ratio[state] < 0.45) {
-            addInsight(list, `Gender Gap: High male-female disparity in ${state}.`, "yellow");
+            addInsight(list, `Gender Gap: Female enrolment is low in ${state}.`, "yellow");
         }
     }
 
-    // Trend 3: Migration
     data.migration_hotspots.forEach(state => {
-        addInsight(list, `Migration Trend: High address updates detected in ${state}.`, "blue");
+        addInsight(list, `Migration: High address updates in ${state}.`, "blue");
     });
 }
 
