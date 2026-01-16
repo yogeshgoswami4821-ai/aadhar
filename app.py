@@ -8,53 +8,48 @@ CORS(app)
 
 @app.route("/")
 def health():
-    return "Backend is Live"
+    return "Backend Live"
 
 @app.route("/upload", methods=["POST"])
 def analyze():
     if "file" not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
-    
-    file = request.files["file"]
+        return jsonify({"error": "No file"}), 400
     try:
-        # Step 1: Read headers first to check columns
-        df_headers = pd.read_csv(file, nrows=0)
-        actual_cols = [c.strip().lower() for c in df_headers.columns]
+        f = request.files["file"]
+        # Fast processing: Limit rows to avoid RAM crash
+        df = pd.read_csv(f, nrows=100000)
         
-        # Mapping actual columns to required columns
-        required = ['state', 'district', 'tehsil', 'enrolment']
-        missing = [c for c in required if c not in actual_cols]
+        # Column names normalize karein
+        df.columns = [c.strip().title() for c in df.columns]
         
-        if missing:
-            return jsonify({"error": f"⚠️ Missing Columns: {', '.join(missing)}"}), 400
-
-        # Step 2: Reload file with mapped columns
-        file.seek(0)
-        df = pd.read_csv(file)
-        df.columns = [c.strip().lower() for c in df.columns]
+        req = ['State', 'District', 'Tehsil', 'Enrolment']
+        if not all(col in df.columns for col in req):
+            return jsonify({"error": f"Missing columns. Need: {', '.join(req)}"}), 400
         
-        # Step 3: Fast processing
-        df['enrolment'] = pd.to_numeric(df['enrolment'], errors='coerce').fillna(0)
-        grouped = df.groupby(['state', 'district', 'tehsil'])['enrolment'].sum().reset_index()
-        avg_val = grouped['enrolment'].mean()
+        # Clean Enrolment data
+        df['Enrolment'] = pd.to_numeric(df['Enrolment'], errors='coerce').fillna(0)
+        
+        # Grouping for hierarchy
+        grouped = df.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
+        avg_v = grouped['Enrolment'].mean()
         
         results = []
-        for _, row in grouped.iterrows():
-            enrol = int(row['enrolment'])
+        for _, r in grouped.iterrows():
+            enrol = int(r['Enrolment'])
+            # R-Y-G Logic
             code = "G"
-            if enrol < (avg_val * 0.5): code = "R"
-            elif enrol < avg_val: code = "Y"
+            if enrol < (avg_v * 0.5): code = "R"
+            elif enrol < avg_v: code = "Y"
             
             results.append({
-                "place": f"{row['state'].title()} > {row['district'].title()} > {row['tehsil'].title()}",
+                "place": f"{r['State']} > {r['District']} > {r['Tehsil']}",
                 "enrolment": enrol,
                 "code": code,
-                "analysis": "Critical" if code == "R" else ("Warning" if code == "Y" else "Stable")
+                "analysis": "Critical" if code == "R" else "Stable"
             })
-            
         return jsonify({"patterns": results})
     except Exception as e:
-        return jsonify({"error": f"Processing Error: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
