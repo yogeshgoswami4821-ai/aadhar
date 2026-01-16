@@ -5,11 +5,16 @@ async function uploadCSV() {
     const btn = document.getElementById("uploadBtn");
     const container = document.getElementById("resultContainer");
     
-    if (!fileInput.files[0]) return alert("Please select a CSV!");
+    if (!fileInput.files[0]) return alert("Please select a CSV file!");
 
-    btn.innerText = "Analyzing...";
-    // Container mein loading state dikhayein
-    container.innerHTML = "<div class='loader'>Processing Hierarchical Data...</div>";
+    btn.innerText = "⚡ Processing Large Data...";
+    btn.disabled = true; // Double click prevent karne ke liye
+    
+    container.innerHTML = `
+        <div class='loader'>
+            <p>🔄 Crunching 1 Million+ Rows...</p>
+            <small>This may take 10-20 seconds on Free Tier server.</small>
+        </div>`;
 
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
@@ -19,30 +24,53 @@ async function uploadCSV() {
             method: "POST",
             body: formData
         });
+
+        if (!res.ok) throw new Error("Server Timeout or File Error");
+
         const data = await res.json();
         
         if(data.error) throw new Error(data.error);
 
         allData = data.patterns;
+        
+        // Show success alert with total count
+        console.log(`Successfully analyzed ${data.summary.total_regions} regions.`);
+        
         displayCards(allData);
     } catch (err) {
-        container.innerHTML = "<p style='color:red'>Server busy or error. Please try again in 1 minute.</p>";
-        btn.innerText = "Analyze Hierarchy";
+        container.innerHTML = `
+            <div style='color:#ef4444; padding:20px; border:1px solid #ef4444; border-radius:8px;'>
+                <strong>Error:</strong> ${err.message}<br>
+                <small>Tip: If using 10L+ rows, try a slightly smaller file or wait 1 minute for server to reset.</small>
+            </div>`;
     } finally {
         btn.innerText = "Analyze Hierarchy";
+        btn.disabled = false;
     }
 }
 
 function displayCards(data) {
     const container = document.getElementById("resultContainer");
-    container.innerHTML = ""; // Purana content saaf karein
+    container.innerHTML = ""; 
 
     if (data.length === 0) {
-        container.innerHTML = "<p>No matches found.</p>";
+        container.innerHTML = "<p class='no-match'>No matching regions found.</p>";
         return;
     }
 
-    data.forEach(item => {
+    // OPTIMIZATION: Agar data 500 se zyada hai, toh sirf top 500 dikhayein 
+    // taaki browser hang na ho. Search karne par baaki mil jayenge.
+    const displayLimit = 500;
+    const itemsToShow = data.slice(0, displayLimit);
+
+    if (data.length > displayLimit) {
+        const info = document.createElement("p");
+        info.innerHTML = `<i>Showing top ${displayLimit} of ${data.length} results. Use search to find specific areas.</i>`;
+        info.style.color = "#64748b";
+        container.appendChild(info);
+    }
+
+    itemsToShow.forEach(item => {
         const colorClass = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
         const card = document.createElement("div");
         card.className = `status-card ${colorClass}`;
@@ -60,8 +88,12 @@ function displayCards(data) {
 
 function filterData() {
     const query = document.getElementById("searchInput").value.toUpperCase();
+    
+    // Fast filtering logic
     const filtered = allData.filter(item => 
-        item.place.toUpperCase().includes(query) || item.code.toUpperCase() === query
+        item.place.toUpperCase().includes(query) || 
+        item.code.toUpperCase() === query
     );
+    
     displayCards(filtered);
 }
