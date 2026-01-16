@@ -12,38 +12,33 @@ def health():
 
 @app.route("/upload", methods=["POST"])
 def analyze():
-    # Check if file exists in request
     if "file" not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
+        return jsonify({"error": "⚠️ No file found in request!"}), 400
     
     file = request.files["file"]
-    
     try:
-        # Step 1: Read CSV and clean headers
+        # Step 1: File reading
         df = pd.read_csv(file)
         df.columns = [c.strip() for c in df.columns]
         
-        # Step 2: Ensure Enrolment is numeric to avoid calculation errors
+        # Step 2: Specific Warning Check for Columns
+        required_cols = ['State', 'District', 'Tehsil', 'Enrolment']
+        missing = [c for c in required_cols if c not in df.columns]
+        if missing:
+            return jsonify({"error": f"⚠️ Missing Columns: {', '.join(missing)}. Please check your CSV headers."}), 400
+
+        # Step 3: Calculation Logic
         df['Enrolment'] = pd.to_numeric(df['Enrolment'], errors='coerce').fillna(0)
-        
-        # Step 3: Group by Hierarchy (State > District > Tehsil)
         grouped = df.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
-        
-        # Step 4: Calculate Average for Status Coding
         avg_val = grouped['Enrolment'].mean()
         
         results = []
         for _, row in grouped.iterrows():
             enrol = int(row['Enrolment'])
-            
-            # Step 5: R-Y-G Status Logic
-            # Red: Below 50% of Average | Yellow: Below Average | Green: Above Average
             code = "G"
-            if enrol < (avg_val * 0.5):
-                code = "R"
-            elif enrol < avg_val:
-                code = "Y"
-                
+            if enrol < (avg_val * 0.5): code = "R"
+            elif enrol < avg_val: code = "Y"
+            
             results.append({
                 "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
                 "enrolment": enrol,
@@ -54,10 +49,8 @@ def analyze():
         return jsonify({"patterns": results})
 
     except Exception as e:
-        # Error handling to prevent 'Server Error' message without context
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"❌ Server Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    # Get port from environment for Render deployment
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
