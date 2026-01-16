@@ -13,43 +13,50 @@ def health():
 @app.route("/upload", methods=["POST"])
 def analyze():
     if "file" not in request.files:
-        return jsonify({"error": "No file"}), 400
+        return jsonify({"error": "No file uploaded"}), 400
+    
+    file = request.files["file"]
     try:
-        f = request.files["file"]
-        # Fast processing: Limit rows to avoid RAM crash
-        df = pd.read_csv(f, nrows=100000)
+        # Step 1: Read all columns but only first 50k rows for speed
+        df = pd.read_csv(file, nrows=50000)
         
-        # Column names normalize karein
+        # Step 2: Clean column names (Strip spaces and Title Case)
         df.columns = [c.strip().title() for c in df.columns]
         
-        req = ['State', 'District', 'Tehsil', 'Enrolment']
-        if not all(col in df.columns for col in req):
-            return jsonify({"error": f"Missing columns. Need: {', '.join(req)}"}), 400
+        # Handle "Enrollment" vs "Enrolment" spelling
+        if 'Enrollment' in df.columns:
+            df.rename(columns={'Enrollment': 'Enrolment'}, inplace=True)
+
+        # Step 3: Check for mandatory columns
+        required = ['State', 'District', 'Tehsil', 'Enrolment']
+        missing = [c for c in required if c not in df.columns]
         
-        # Clean Enrolment data
+        if missing:
+            return jsonify({"error": f"⚠️ File Headers Missing: {', '.join(missing)}"}), 400
+
+        # Step 4: Data Processing
         df['Enrolment'] = pd.to_numeric(df['Enrolment'], errors='coerce').fillna(0)
-        
-        # Grouping for hierarchy
         grouped = df.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
-        avg_v = grouped['Enrolment'].mean()
+        avg_val = grouped['Enrolment'].mean()
         
         results = []
-        for _, r in grouped.iterrows():
-            enrol = int(r['Enrolment'])
+        for _, row in grouped.iterrows():
+            enrol = int(row['Enrolment'])
             # R-Y-G Logic
             code = "G"
-            if enrol < (avg_v * 0.5): code = "R"
-            elif enrol < avg_v: code = "Y"
+            if enrol < (avg_val * 0.5): code = "R"
+            elif enrol < avg_val: code = "Y"
             
             results.append({
-                "place": f"{r['State']} > {r['District']} > {r['Tehsil']}",
+                "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
                 "enrolment": enrol,
                 "code": code,
                 "analysis": "Critical" if code == "R" else "Stable"
             })
+            
         return jsonify({"patterns": results})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Processing Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
