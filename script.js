@@ -11,7 +11,7 @@ async function uploadCSV() {
     formData.append("file", fileInput.files[0]);
 
     try {
-        // Updated URL to your new active backend
+        // Aapka naya Render URL yahan update kar diya gaya hai
         const res = await fetch("https://aadhar-o9nr.onrender.com/upload", {
             method: "POST",
             body: formData
@@ -28,6 +28,7 @@ async function uploadCSV() {
         drawChart(data.states, data.enrolments);
         processTrends(data);
     } catch (err) {
+        // Render free tier pehli baar jaagne mein 30-50 seconds leta hai
         alert("Server is waking up. Please wait 30 seconds and try again.");
         console.error(err);
     } finally {
@@ -80,3 +81,4 @@ function addInsight(target, text, type) {
     li.innerText = text;
     target.appendChild(li);
 }
+
