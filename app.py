@@ -8,49 +8,43 @@ CORS(app)
 
 @app.route("/")
 def health():
-    return "Hierarchy Analytics Engine Online"
+    return "Hierarchy Engine Live"
 
 @app.route("/upload", methods=["POST"])
-def analyze_hierarchy():
+def analyze():
     if "file" not in request.files:
-        return jsonify({"error": "No file uploaded"}), 400
+        return jsonify({"error": "No file"}), 400
     
     file = request.files["file"]
     try:
         df = pd.read_csv(file)
         df.columns = [c.strip() for c in df.columns]
 
-        # 1. Hierarchical Aggregation
-        # Required columns: State, District, Tehsil, Enrolment
-        hierarchy_data = df.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
-
-        # 2. Logic: Status Coding (Place-wise Coding)
-        # Target based on average to identify underperforming areas
-        target_val = hierarchy_data['Enrolment'].mean()
+        # Grouping for Hierarchy
+        hierarchy = df.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
+        avg_val = hierarchy['Enrolment'].mean()
         
         results = []
-        for _, row in hierarchy_data.iterrows():
+        for _, row in hierarchy.iterrows():
             enrol = row['Enrolment']
-            
-            # Pattern Assignment
-            if enrol < (target_val * 0.5):
-                code = "R" # Red: Critical Problem
-                issue = "Low Saturation: Immediate camps required"
-            elif enrol < target_val:
-                code = "Y" # Yellow: Medium Pattern
-                issue = "Slow Progress: Awareness needed"
+            if enrol < (avg_val * 0.5):
+                code, analysis = "R", "Critical: Immediate intervention needed."
+            elif enrol < avg_val:
+                code, analysis = "Y", "Warning: Improving but slow."
             else:
-                code = "G" # Green: Good Pattern
-                issue = "Stable: Monitoring only"
+                code, analysis = "G", "Stable: High saturation level."
 
             results.append({
                 "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
                 "enrolment": int(enrol),
                 "code": code,
-                "analysis": issue
+                "analysis": analysis
             })
 
-        return jsonify({"patterns": results})
+        return jsonify({
+            "patterns": results,
+            "summary": {"total": int(df['Enrolment'].sum()), "count": len(results)}
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
