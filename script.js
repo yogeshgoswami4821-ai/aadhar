@@ -5,19 +5,18 @@ async function uploadCSV() {
     const btn = document.getElementById("uploadBtn");
     const container = document.getElementById("resultContainer");
     
-    if (!fileInput.files[0]) return alert("Pehle file select karein!");
+    if (!fileInput.files[0]) return alert("Please select a file!");
 
-    // Loading State
-    btn.innerText = "⚡ Processing 1 Million+ Rows...";
+    btn.innerText = "⚡ Processing...";
     btn.disabled = true;
-    container.innerHTML = `<div class='loader'>🔄 Analyzing Hierarchical Data... (Wait for 30-60s)</div>`;
+    container.innerHTML = `<div class='loader'>🔄 Analyzing... Wait 30-60s for large files.</div>`;
 
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
     try {
         const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), 120000); // 2 min timeout
+        const timeoutId = setTimeout(() => controller.abort(), 120000); 
 
         const res = await fetch("https://aadhar-o9nr.onrender.com/upload", {
             method: "POST",
@@ -25,7 +24,7 @@ async function uploadCSV() {
             signal: controller.signal
         });
 
-        clearTimeout(id);
+        clearTimeout(timeoutId);
         const data = await res.json();
         
         if(data.error) throw new Error(data.error);
@@ -34,8 +33,8 @@ async function uploadCSV() {
         displayCards(allData);
 
     } catch (err) {
-        let msg = err.name === 'AbortError' ? "Server Timeout (Data too large)" : "Server Busy or File Error";
-        container.innerHTML = `<p style='color:red; font-weight:bold;'>⚠️ ${msg}. Tip: Demo ke liye 5 Lakh rows wali file best hai.</p>`;
+        let msg = err.name === 'AbortError' ? "Timeout (Large Data)" : "Server Error";
+        container.innerHTML = `<p style='color:red;'>⚠️ ${msg}. Tip: Try a smaller file for instant demo.</p>`;
     } finally {
         btn.innerText = "Analyze Hierarchy";
         btn.disabled = false;
@@ -45,17 +44,12 @@ async function uploadCSV() {
 function displayCards(data) {
     const container = document.getElementById("resultContainer");
     container.innerHTML = ""; 
-
-    if (!data || data.length === 0) {
-        container.innerHTML = "<p>No data to display.</p>";
-        return;
-    }
-
-    // Performance Optimization: Only show top 300 cards
-    data.slice(0, 300).forEach(item => {
-        const colorClass = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
+    
+    // Performance: Only show top 400 cards to avoid browser lag
+    data.slice(0, 400).forEach(item => {
+        const color = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
         const card = document.createElement("div");
-        card.className = `status-card ${colorClass}`;
+        card.className = `status-card ${color}`;
         card.innerHTML = `
             <div class="badge">${item.code}</div>
             <div class="card-info">
@@ -69,9 +63,6 @@ function displayCards(data) {
 
 function filterData() {
     const query = document.getElementById("searchInput").value.toUpperCase();
-    const filtered = allData.filter(item => 
-        item.place.toUpperCase().includes(query) || 
-        item.code.toUpperCase() === query
-    );
+    const filtered = allData.filter(i => i.place.toUpperCase().includes(query) || i.code === query);
     displayCards(filtered);
 }
