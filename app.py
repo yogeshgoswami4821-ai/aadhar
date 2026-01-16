@@ -8,7 +8,7 @@ CORS(app)
 
 @app.route("/")
 def health():
-    return "Aadhaar Backend is Online"
+    return "Backend is Live"
 
 @app.route("/upload", methods=["POST"])
 def analyze():
@@ -17,34 +17,29 @@ def analyze():
     
     file = request.files["file"]
     try:
-        # Optimization: Sirf zaroori columns read karein
+        # Optimization: Only load what is needed
         cols = ['State', 'District', 'Tehsil', 'Enrolment']
         
-        # 10 Lakh rows ke liye chunking zaruri hai
+        # Process in chunks to prevent 'Server Busy' errors
         chunk_list = []
-        for chunk in pd.read_csv(file, usecols=cols, chunksize=200000):
-            # YAHAN ERROR THI: Ab ye line sahi indented hai
+        for chunk in pd.read_csv(file, usecols=cols, chunksize=250000):
             chunk.columns = [c.strip() for c in chunk.columns]
-            
-            # Turant data chota karein memory bachane ke liye
             summary = chunk.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
             chunk_list.append(summary)
 
-        # Saare chunks merge karein
         df = pd.concat(chunk_list).groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
         avg_val = df['Enrolment'].mean()
         
         results = []
         for _, row in df.iterrows():
             enrol = int(row['Enrolment'])
-            # Predictive Status Coding (R, Y, G)
+            # R-Y-G Status Logic
             code = "R" if enrol < (avg_val * 0.5) else ("Y" if enrol < avg_val else "G")
-            
             results.append({
                 "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
                 "enrolment": enrol,
                 "code": code,
-                "analysis": "Critical Problem" if code == "R" else ("Warning" if code == "Y" else "Stable Pattern")
+                "analysis": "Critical" if code == "R" else ("Moderate" if code == "Y" else "Stable")
             })
 
         return jsonify({"patterns": results})
