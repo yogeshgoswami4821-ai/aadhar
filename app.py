@@ -17,30 +17,36 @@ def analyze():
     
     file = request.files["file"]
     try:
-        # Use only required columns to save memory
-        cols = ['State', 'District', 'Tehsil', 'Enrolment']
+        # Step 1: Read headers first to check columns
+        df_headers = pd.read_csv(file, nrows=0)
+        actual_cols = [c.strip().lower() for c in df_headers.columns]
         
-        # Fast Chunking Logic
-        chunk_list = []
-        for chunk in pd.read_csv(file, usecols=cols, chunksize=300000):
-            chunk.columns = [c.strip() for c in chunk.columns]
-            # Pre-aggregate each chunk
-            summary = chunk.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
-            chunk_list.append(summary)
+        # Mapping actual columns to required columns
+        required = ['state', 'district', 'tehsil', 'enrolment']
+        missing = [c for c in required if c not in actual_cols]
+        
+        if missing:
+            return jsonify({"error": f"⚠️ Missing Columns: {', '.join(missing)}"}), 400
 
-        # Final aggregation
-        df = pd.concat(chunk_list).groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
-        avg_val = df['Enrolment'].mean()
+        # Step 2: Reload file with mapped columns
+        file.seek(0)
+        df = pd.read_csv(file)
+        df.columns = [c.strip().lower() for c in df.columns]
+        
+        # Step 3: Fast processing
+        df['enrolment'] = pd.to_numeric(df['enrolment'], errors='coerce').fillna(0)
+        grouped = df.groupby(['state', 'district', 'tehsil'])['enrolment'].sum().reset_index()
+        avg_val = grouped['enrolment'].mean()
         
         results = []
-        for _, row in df.iterrows():
-            enrol = int(row['Enrolment'])
+        for _, row in grouped.iterrows():
+            enrol = int(row['enrolment'])
             code = "G"
             if enrol < (avg_val * 0.5): code = "R"
             elif enrol < avg_val: code = "Y"
             
             results.append({
-                "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
+                "place": f"{row['state'].title()} > {row['district'].title()} > {row['tehsil'].title()}",
                 "enrolment": enrol,
                 "code": code,
                 "analysis": "Critical" if code == "R" else ("Warning" if code == "Y" else "Stable")
@@ -48,7 +54,7 @@ def analyze():
             
         return jsonify({"patterns": results})
     except Exception as e:
-        return jsonify({"error": f"Memory/Processing Error: {str(e)}"}), 500
+        return jsonify({"error": f"Processing Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
