@@ -17,25 +17,23 @@ def analyze():
     
     file = request.files["file"]
     try:
-        # Optimization: Only read required columns
+        # Step 1: Memory optimization for 1M+ rows
         cols = ['State', 'District', 'Tehsil', 'Enrolment']
-        
-        # Data ko chunks mein read karenge taaki RAM crash na ho
         chunk_list = []
+        
+        # Data ko 2 Lakh ke chunks mein process karenge
         for chunk in pd.read_csv(file, usecols=cols, chunksize=200000):
-            # Column names se extra space hatayein
             chunk.columns = [c.strip() for c in chunk.columns]
-            # Har chunk ko turant summarize karein
+            # Immediate aggregation to save RAM
             summary = chunk.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
             chunk_list.append(summary)
 
-        # Saare summaries ko merge karein
+        # Step 2: Final Data Merging
         df_final = pd.concat(chunk_list).groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
-        
         avg_val = df_final['Enrolment'].mean()
+        
         results = []
-
-        # R-Y-G Coding Logic
+        # Browser crash na ho isliye top results dikhayenge
         for _, row in df_final.iterrows():
             enrol = row['Enrolment']
             code = "R" if enrol < (avg_val * 0.5) else ("Y" if enrol < avg_val else "G")
@@ -50,7 +48,7 @@ def analyze():
         return jsonify({"patterns": results})
 
     except Exception as e:
-        return jsonify({"error": f"Backend Error: {str(e)}"}), 500
+        return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
