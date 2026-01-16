@@ -1,11 +1,7 @@
 State,District,Tehsil,Enrolment
-Maharashtra,Mumbai,Andheri,85000
-Maharashtra,Mumbai,Borivali,72000
-Bihar,Patna,Sadar,12000
-Bihar,Patna,Danapur,8000
-Uttar Pradesh,Lucknow,Bakshi-Ka-Talab,95000
-Uttar Pradesh,Lucknow,Sarojini-Nagar,48000
-Gujarat,Ahmedabad,Daskroi,62000
-Gujarat,Ahmedabad,Sanand,31000
-Rajasthan,Jaipur,Sanganer,55000
-Rajasthan,Jaipur,Amer,15000
+Maharashtra,Mumbai,Andheri,95000
+Maharashtra,Mumbai,Borivali,88000
+Bihar,Patna,Sadar,15000
+Bihar,Patna,Danapur,12000
+Uttar Pradesh,Lucknow,Sadar,75000
+Rajasthan,Jaipur,Amer,22000
