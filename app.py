@@ -8,7 +8,7 @@ CORS(app)
 
 @app.route("/")
 def health():
-    return "Backend is Live"
+    return "Aadhaar Backend is Online"
 
 @app.route("/upload", methods=["POST"])
 def analyze():
@@ -17,16 +17,20 @@ def analyze():
     
     file = request.files["file"]
     try:
-        # Optimization: Only load what is needed
+        # Step 1: Optimization
         cols = ['State', 'District', 'Tehsil', 'Enrolment']
-        
-        # Process in chunks to prevent 'Server Busy' errors
         chunk_list = []
-        for chunk in pd.read_csv(file, usecols=cols, chunksize=250000):
+        
+        # Step 2: Proper Indentation (Error yahan thi)
+        for chunk in pd.read_csv(file, usecols=cols, chunksize=200000):
+            # Is line ko bilkul aise hi paste karein
             chunk.columns = [c.strip() for c in chunk.columns]
+            
+            # Step 3: Immediate Aggregation
             summary = chunk.groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
             chunk_list.append(summary)
 
+        # Step 4: Final Merging
         df = pd.concat(chunk_list).groupby(['State', 'District', 'Tehsil'])['Enrolment'].sum().reset_index()
         avg_val = df['Enrolment'].mean()
         
@@ -35,6 +39,7 @@ def analyze():
             enrol = int(row['Enrolment'])
             # R-Y-G Status Logic
             code = "R" if enrol < (avg_val * 0.5) else ("Y" if enrol < avg_val else "G")
+            
             results.append({
                 "place": f"{row['State']} > {row['District']} > {row['Tehsil']}",
                 "enrolment": enrol,
@@ -43,6 +48,7 @@ def analyze():
             })
 
         return jsonify({"patterns": results})
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
