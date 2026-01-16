@@ -1,15 +1,31 @@
-body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
-header { background: #1a237e; color: white; padding: 20px; text-align: center; }
-.container { max-width: 1000px; margin: 20px auto; padding: 0 20px; }
+body { font-family: 'Inter', sans-serif; background: #f8fafc; margin: 0; }
+header { background: #1e3a8a; color: white; padding: 40px 20px; text-align: center; }
 
-.upload-section, .search-box { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-#searchInput { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+.container { max-width: 900px; margin: -30px auto 40px; padding: 0 20px; }
+.upload-section, .search-box { 
+    background: white; padding: 25px; border-radius: 12px; 
+    margin-bottom: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); 
+}
 
-.result-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
+#searchInput { width: 100%; padding: 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; outline: none; }
+#searchInput:focus { border-color: #3b82f6; }
 
-.status-card { padding: 20px; border-radius: 8px; border-left: 10px solid; background: white; position: relative; }
-.badge { position: absolute; top: 10px; right: 10px; font-weight: bold; background: #333; color: #white; padding: 5px 10px; border-radius: 4px; color:white; }
+/* Dashboard Cards */
+.result-grid { display: flex; flex-direction: column; gap: 15px; min-height: 200px; }
+.status-card { 
+    background: white; padding: 20px; border-radius: 10px; 
+    border-left: 8px solid; position: relative; transition: 0.3s; 
+    display: flex; align-items: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
 
-.red-card { border-color: #d32f2f; background: #ffebee; }
-.yellow-card { border-color: #fbc02d; background: #fffde7; }
-.green-card { border-color: #388e3c; background: #e8f5e9; }
+.badge { 
+    min-width: 40px; height: 40px; border-radius: 50%; 
+    background: #334155; color: white; display: flex; 
+    justify-content: center; align-items: center; font-weight: bold; margin-right: 20px; 
+}
+
+.red-card { border-color: #ef4444; background: #fef2f2; }
+.yellow-card { border-color: #f59e0b; background: #fffbeb; }
+.green-card { border-color: #10b981; background: #ecfdf5; }
+
+.loader { text-align: center; padding: 40px; font-style: italic; color: #64748b; }
