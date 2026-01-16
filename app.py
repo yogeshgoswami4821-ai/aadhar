@@ -1,13 +1,14 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
+import numpy as np
 
 app = Flask(__name__)
-CORS(app)  # Frontend (GitHub Pages) ke liye CORS allow
+CORS(app)
 
 @app.route("/")
 def home():
-    return "Aadhaar Backend Running"
+    return {"status": "Aadhaar Analytics API is Online"}
 
 @app.route("/upload", methods=["POST"])
 def upload():
@@ -15,30 +16,40 @@ def upload():
         return jsonify({"error": "No file uploaded"}), 400
 
     file = request.files["file"]
-
     try:
         df = pd.read_csv(file)
-    except Exception as e:
-        return jsonify({"error": "Invalid CSV file"}), 400
+        # Safely handling column names
+        df.columns = [c.strip() for c in df.columns]
+    except:
+        return jsonify({"error": "Invalid CSV"}), 400
 
-    # Required columns check
-    required_cols = ["State", "Enrolment"]
-    for col in required_cols:
-        if col not in df.columns:
-            return jsonify({"error": f"Missing column: {col}"}), 400
+    # Required Columns for Trends
+    # Expected: State, District, Enrolment, Gender, Update_Type (Address/Biometric/New)
+    
+    # 1. State-wise Aggregation
+    res = df.groupby("State")["Enrolment"].sum().reset_index()
+    
+    # 2. Societal Trend: Gender Gap Analysis
+    gender_gap = df.groupby("State")["Gender"].value_counts(normalize=True).unstack().fillna(0)
+    female_ratio = gender_gap.get('Female', pd.Series(0, index=gender_gap.index)).to_dict()
 
-    # State-wise aggregation
-    result = (
-        df.groupby("State")["Enrolment"]
-        .sum()
-        .reset_index()
-        .sort_values(by="Enrolment", ascending=False)
-    )
+    # 3. Societal Trend: Migration (High Address Updates)
+    migration_trend = []
+    if 'Update_Type' in df.columns:
+        mig_data = df[df['Update_Type'] == 'Address'].groupby('State').size()
+        avg_mig = mig_data.mean()
+        migration_trend = mig_data[mig_data > avg_mig].index.tolist()
 
     return jsonify({
-        "states": result["State"].tolist(),
-        "enrolments": result["Enrolment"].tolist()
+        "states": res["State"].tolist(),
+        "enrolments": res["Enrolment"].tolist(),
+        "female_ratio": female_ratio,
+        "migration_hotspots": migration_trend,
+        "summary": {
+            "total_enrolment": int(df["Enrolment"].sum()),
+            "avg_by_state": int(res["Enrolment"].mean())
+        }
     })
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
