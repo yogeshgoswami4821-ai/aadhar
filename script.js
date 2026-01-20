@@ -14,9 +14,32 @@ function initDashboard() {
     charts.comparison = new Chart(document.getElementById('comparisonChart'), config('doughnut', ['#3b82f6','#8b5cf6','#ef4444','#f59e0b','#10b981']));
 }
 
+// 1. Faltu naam aur spelling errors ko saaf karne wala function
+function cleanStateName(name) {
+    if (!name) return "";
+    
+    // Extra spaces hatana aur lowercase karke proper case banana
+    let clean = name.trim().toLowerCase()
+                    .replace(/\s+/g, ' ') // Double spaces hatana
+                    .replace(/\b\w/g, l => l.toUpperCase()); // West bengal -> West Bengal
+    
+    // Spelling Mistakes Fix (Aapke screenshot ke hisaab se)
+    if (clean.includes("Bangal") || clean.includes("Bengli") || clean.includes("Westbengal")) {
+        clean = "West Bengal";
+    }
+    if (clean.includes("Dadra") || clean.includes("Daman")) {
+        clean = "Dadra and Nagar Haveli and Daman and Diu";
+    }
+
+    // Agar naam mein koi number hai toh wo state nahi ho sakta
+    if (/\d/.test(clean)) return null;
+
+    return clean;
+}
+
 async function uploadCSV() {
     const files = document.getElementById("fileInput").files;
-    if (!files.length) return alert("Bhai, CSV file select karo!");
+    if (!files.length) return alert("Bhai, file select karo!");
     let rows = [];
     for (let f of files) {
         const text = await f.text();
@@ -24,16 +47,6 @@ async function uploadCSV() {
         rows = rows.concat(res.data);
     }
     parseData(rows);
-}
-
-// Faltu naam aur duplicates hatane wala logic
-function cleanName(name) {
-    if (!name) return "";
-    // 1. Sabhi extra spaces hatana aur Proper Case banana (e.g., WEST BENGAL -> West Bengal)
-    return name.trim()
-               .toLowerCase()
-               .replace(/\b\w/g, l => l.toUpperCase())
-               .replace("Bangal", "Bengal"); // Common spelling mistake fix
 }
 
 function parseData(rows) {
@@ -47,18 +60,21 @@ function parseData(rows) {
         if (dateIdx === -1) return;
 
         let dateVal = row[dateIdx].trim();
-        let stateVal = cleanName(row[dateIdx + 1]);
-        let distVal = cleanName(row[dateIdx + 2]);
+        let stateRaw = row[dateIdx + 1] ? row[dateIdx + 1].trim() : "";
+        let distRaw = row[dateIdx + 2] ? row[dateIdx + 2].trim() : "";
         
-        // Validation: Agar naam mein numbers hain ya bohot chota hai toh hata do
-        if (/\d/.test(stateVal) || stateVal.length < 3) return;
-
-        let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
-        let enrollment = Math.max(...nums);
-
-        if (enrollment > 0) {
-            dates.add(dateVal);
-            allData.push({ date: dateVal, state: stateVal, dist: distVal, val: enrollment });
+        let stateVal = cleanStateName(stateRaw);
+        let distVal = distRaw.replace(/\b\w/g, l => l.toUpperCase()); // District ko bhi proper case
+        
+        // Sirf valid entries add karein
+        if (stateVal && stateVal.length > 3) {
+            let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
+            let enrollment = Math.max(...nums);
+            
+            if (enrollment > 0) {
+                dates.add(dateVal);
+                allData.push({ date: dateVal, state: stateVal, dist: distVal, val: enrollment });
+            }
         }
     });
 
@@ -68,11 +84,10 @@ function parseData(rows) {
 }
 
 function populateStateList() {
-    // Unique states filter
+    // Unique states ka set (Duplication khatam karne ke liye)
     const states = [...new Set(allData.map(d => d.state))].sort();
     const container = document.getElementById('stateList');
     
-    // Sirf valid states dikhana
     container.innerHTML = states.map(s => `
         <div class="multi-select-item">
             <input type="checkbox" class="state-check" value="${s}" onchange="updateDistrictList()"> ${s}
@@ -85,7 +100,7 @@ function updateDistrictList() {
     const container = document.getElementById('distList');
     
     if (selectedStates.length === 0) {
-        container.innerHTML = '<p style="font-size:10px; color:gray; padding:5px;">State select karein...</p>';
+        container.innerHTML = '<p style="font-size:10px; color:gray; padding:5px;">Select a state...</p>';
     } else {
         const districts = [...new Set(allData.filter(d => selectedStates.includes(d.state)).map(d => d.dist))].sort();
         container.innerHTML = districts.map(d => `
@@ -107,7 +122,7 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    // Bhopal Duplicate Fix: Summing values by District
+    // Bhopal aur doosri districts ka data group karna
     let groupedMap = {};
     filtered.forEach(item => {
         let key = item.dist;
@@ -139,11 +154,11 @@ function updateCharts(groupedData, rawFiltered) {
     charts.top1.update();
 
     charts.top2.data.labels = trendValues.map((_, i) => i);
-    charts.top2.data.datasets[0].data = trendValues.map(v => v * 0.85);
+    charts.top2.data.datasets[0].data = trendValues.map(v => v * 0.9);
     charts.top2.update();
 
     document.getElementById('mainPercent').innerText = groupedData.length > 0 ? "100%" : "0%";
-    document.getElementById('totalCountDisplay').innerText = `${groupedData.length} Regions Cleaned & Analyzed`;
+    document.getElementById('totalCountDisplay').innerText = `${groupedData.length} Clean Districts Found`;
 }
 
 function populateDateDropdown(dates) {
