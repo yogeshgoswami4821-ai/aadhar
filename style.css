@@ -1,171 +1,134 @@
-/* --- Global Styles --- */
 :root {
-    --primary-blue: #2563eb;
-    --secondary-blue: #3b82f6;
-    --success-green: #10b981;
-    --bg-color: #f0f4f8; /* Light blue-grey background */
-    --card-bg: #ffffff;
-    --text-main: #1e293b;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --primary: #2563eb;
+    --text-dark: #1e293b;
     --text-muted: #64748b;
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --border: #e2e8f0;
 }
 
 body {
-    background-color: var(--bg-color);
-    color: var(--text-main);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg);
+    font-family: 'Segoe UI', system-ui, sans-serif;
     margin: 0;
     padding: 20px;
+    color: var(--text-dark);
 }
 
-h1 {
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text-main);
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border);
+}
+
+/* Sidebar Styling */
+.sidebar .section {
     margin-bottom: 25px;
 }
 
-/* --- Layout Grid --- */
-.container {
-    max-width: 1440px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 320px 1fr 1fr; /* Sidebar, Charts, Charts */
-    grid-template-rows: auto auto;
-    gap: 24px;
-}
-
-/* --- Card Styles --- */
-.card {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 20px;
-    box-shadow: var(--shadow);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    transition: transform 0.2s ease;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-}
-
-.full-width {
-    grid-column: span 2;
-}
-
-h2 {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-muted);
+h3 {
+    font-size: 14px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 0;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #f1f5f9;
-    padding-bottom: 10px;
-}
-
-/* --- Controls & Inputs --- */
-.sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.upload-area {
-    border: 2px dashed #cbd5e1;
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    background: #f8fafc;
-}
-
-input[type="file"] {
-    width: 100%;
-    font-size: 13px;
     color: var(--text-muted);
+    letter-spacing: 0.5px;
+    margin-bottom: 15px;
 }
 
-button {
-    background: var(--primary-blue);
+.btn-primary {
+    width: 100%;
+    background: var(--primary);
     color: white;
     border: none;
-    padding: 12px 20px;
-    border-radius: 10px;
+    padding: 12px;
+    border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s;
-}
-
-button:hover {
-    background: var(--secondary-blue);
+    margin-top: 10px;
 }
 
 select {
     width: 100%;
     padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #cbd5e1;
-    background: white;
-    font-size: 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin-bottom: 15px;
 }
 
-/* --- Multi-Select State Box --- */
-.multi-select {
-    height: 180px;
+.multi-select-box {
+    height: 150px;
     overflow-y: auto;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
     padding: 8px;
-    background: #ffffff;
+    background: #f8fafc;
 }
 
-.state-item {
+.multi-select-item {
     display: flex;
     align-items: center;
-    padding: 6px;
-    font-size: 14px;
-    border-radius: 4px;
+    gap: 8px;
+    font-size: 13px;
+    margin-bottom: 6px;
 }
 
-.state-item:hover {
-    background: #f1f5f9;
+/* Main Content & Charts */
+.main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
-/* --- Chart Canvas Height --- */
-.chart-box {
-    height: 320px;
+.charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.chart-container {
+    height: 300px;
     position: relative;
 }
 
-/* --- Result Feed / Activity List --- */
-#resultFeed {
+/* Status Cards in Feed */
+.feed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
     max-height: 400px;
     overflow-y: auto;
 }
 
 .status-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     background: #f8fafc;
     padding: 15px;
-    border-radius: 12px;
-    margin-bottom: 12px;
-    border-left: 5px solid var(--primary-blue);
+    border-radius: 8px;
+    border-left: 4px solid var(--primary);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
-.status-card strong {
-    color: var(--text-main);
-    display: block;
-}
+.status-card strong { font-size: 15px; }
+.status-card small { color: var(--text-muted); font-size: 12px; }
 
-.status-card small {
+.placeholder-text {
+    grid-column: span 3;
+    text-align: center;
     color: var(--text-muted);
-}
-
-.value-text {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--primary-blue);
+    padding: 40px;
 }
