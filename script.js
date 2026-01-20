@@ -5,7 +5,7 @@ function uploadCSV() {
     const container = document.getElementById("resultContainer");
     const btn = document.getElementById("uploadBtn");
 
-    if (!fileInput.files[0]) {
+    if (!fileInput.files || !fileInput.files[0]) {
         alert("Please select a file first!");
         return;
     }
@@ -22,7 +22,8 @@ function uploadCSV() {
             btn.disabled = false;
         },
         error: function(err) {
-            console.error("Parsing error:", err);
+            console.error(err);
+            alert("Error reading CSV file");
             btn.disabled = false;
         }
     });
@@ -37,28 +38,27 @@ function processData(data) {
 
     const keys = Object.keys(data[0]);
     
-    // Flexible Column Detection Logic
+    // Fuzzy search for headers
     const findKey = (list) => keys.find(k => list.some(name => k.toLowerCase().trim().includes(name)));
 
     const sKey = findKey(["state", "st"]);
     const dKey = findKey(["district", "dist"]);
     const eKey = findKey(["enrol", "enroll", "count", "total"]);
-    const tKey = findKey(["tehsil", "sub-dist", "taluka", "block"]); // Tehsil is now flexible
+    const tKey = findKey(["tehsil", "sub-dist", "taluka", "block"]); // Tehsil is optional
 
-    // Agar mandatory columns (State, District, Enrolment) missing hain
+    // Mandatory Check
     if (!sKey || !dKey || !eKey) {
         container.innerHTML = `
             <div style="color:red; border:2px solid red; padding:15px; border-radius:8px; background:#fff5f5;">
-                <h3>⚠️ CSV HEADER ERROR</h3>
-                <p>Missing Mandatory Columns: ${!sKey ? 'State ' : ''} ${!dKey ? 'District ' : ''} ${!eKey ? 'Enrolment' : ''}</p>
-                <p><small>Note: Tehsil is optional, but State, District, and Enrolment are required.</small></p>
+                <h3>⚠️ HEADER ERROR</h3>
+                <p>Mandatory Columns Missing: ${!sKey ? 'State ' : ''} ${!dKey ? 'District ' : ''} ${!eKey ? 'Enrolment' : ''}</p>
             </div>`;
         return;
     }
 
     let summary = {};
     data.forEach(row => {
-        // Fallback check: Agar Tehsil missing hai toh sirf State > District dikhao
+        // Dynamic path based on Tehsil availability
         let path = tKey ? `${row[sKey]} > ${row[dKey]} > ${row[tKey]}` : `${row[sKey]} > ${row[dKey]}`;
         let val = parseInt(row[eKey]) || 0;
         summary[path] = (summary[path] || 0) + val;
@@ -83,11 +83,11 @@ function displayCards(data) {
     container.innerHTML = "";
     
     if (data.length === 0) {
-        container.innerHTML = "No data to display.";
+        container.innerHTML = "No data found.";
         return;
     }
 
-    data.slice(0, 150).forEach(item => {
+    data.slice(0, 100).forEach(item => {
         const colorClass = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
         const card = document.createElement("div");
         card.className = `status-card ${colorClass}`;
@@ -95,8 +95,8 @@ function displayCards(data) {
             <div class="badge">${item.code}</div>
             <div class="card-info">
                 <h3>${item.place}</h3>
-                <p><strong>Enrolment:</strong> ${item.enrolment.toLocaleString()}</p>
-                <p><strong>Status:</strong> ${item.status}</p>
+                <p>Enrolment: ${item.enrolment.toLocaleString()}</p>
+                <p>Status: ${item.status}</p>
             </div>`;
         container.appendChild(card);
     });
