@@ -14,25 +14,27 @@ function initDashboard() {
     charts.comparison = new Chart(document.getElementById('comparisonChart'), config('doughnut', ['#3b82f6','#8b5cf6','#ef4444','#f59e0b','#10b981']));
 }
 
-// 1. Strict Cleaning: Faltu naam aur District ko State list se hatana
+// 1. Sabse Important: Cleaning Logic (Duplicates aur Faltu naam hatane ke liye)
 function cleanStateName(name) {
     if (!name) return null;
+
+    // Standardize: Sab "And" ko "&" karo, extra space hatao, aur Proper Case banao
+    let clean = name.trim().toUpperCase()
+                    .replace(/\s+AND\s+/g, ' & ') 
+                    .replace(/WESTBENGAL/g, 'WEST BENGAL')
+                    .replace(/WEST BANGAL/g, 'WEST BENGAL')
+                    .replace(/WEST BENGLI/g, 'WEST BENGAL')
+                    .replace(/PONDICHERRY/g, 'PUDUCHERRY');
+
+    // Title Case mein convert karna (West Bengal)
+    clean = clean.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    if(clean.includes("&")) clean = clean.replace("& n", "& N"); // Nicobar fix
+
+    // 2. Faltu naam (Districts) jo State list mein aa rahe hain unhe Block karna
+    const blockList = ["Darbhanga", "Bhopal", "Indore", "Patna", "Lucknow", "Unknown", "Undefined"];
     
-    let clean = name.trim().toLowerCase()
-                    .replace(/\s+/g, ' ') 
-                    .replace(/\b\w/g, l => l.toUpperCase());
-
-    // Spelling Fixes (Standardizing names)
-    if (clean.includes("Bangal") || clean.includes("Bengli") || clean.includes("Westbengal") || clean === "West Bengal") {
-        clean = "West Bengal";
-    }
-    if (clean.includes("Dadra") || clean.includes("Daman")) {
-        clean = "Dadra and Nagar Haveli and Daman and Diu";
-    }
-
-    // Faltu Districts/Names jo State list mein aa rahe hain (Inhe list se nikaal do)
-    const blackList = ["Darbhanga", "Bhopal", "Indore", "Patna", "Lucknow"]; 
-    if (blackList.includes(clean) || /\d/.test(clean) || clean.length < 3) {
+    // Agar naam blocklist mein hai, ya usme number hai, ya bohot chota hai toh hata do
+    if (blockList.includes(clean) || /\d/.test(clean) || clean.length < 4) {
         return null;
     }
 
@@ -41,7 +43,7 @@ function cleanStateName(name) {
 
 async function uploadCSV() {
     const files = document.getElementById("fileInput").files;
-    if (!files.length) return alert("File chuno!");
+    if (!files.length) return alert("Pehle file chuno bhai!");
     let rows = [];
     for (let f of files) {
         const text = await f.text();
@@ -66,13 +68,7 @@ function parseData(rows) {
         let distRaw = row[dateIdx + 2] ? row[dateIdx + 2].trim() : "";
         
         let stateVal = cleanStateName(stateRaw);
-        let distVal = distRaw.replace(/\b\w/g, l => l.toUpperCase());
-
-        // Agar state column mein district aa gayi hai (Darbhanga fix)
-        if (!stateVal && distRaw.length > 2) {
-             // Hum is record ko skip kar rahe hain taaki list saaf rahe
-             return; 
-        }
+        let distVal = distRaw.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 
         if (stateVal) {
             let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
@@ -91,7 +87,7 @@ function parseData(rows) {
 }
 
 function populateStateList() {
-    // Unique states list
+    // Unique states nikalna taaki repeat na ho
     const states = [...new Set(allData.map(d => d.state))].sort();
     const container = document.getElementById('stateList');
     
@@ -107,7 +103,7 @@ function updateDistrictList() {
     const container = document.getElementById('distList');
     
     if (selectedStates.length === 0) {
-        container.innerHTML = '<p style="font-size:10px; color:gray; padding:5px;">State select karein...</p>';
+        container.innerHTML = '<p style="font-size:10px; color:gray; padding:5px;">Select State first...</p>';
     } else {
         const districts = [...new Set(allData.filter(d => selectedStates.includes(d.state)).map(d => d.dist))].sort();
         container.innerHTML = districts.map(d => `
@@ -129,7 +125,7 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    // Aggregate Data by District
+    // Grouping by District (Bhopal Duplicate Fix)
     let groupedMap = {};
     filtered.forEach(item => {
         let key = item.dist;
@@ -155,18 +151,17 @@ function updateCharts(groupedData, rawFiltered) {
     charts.comparison.data.datasets[0].data = top10.slice(0, 5).map(d => d.val);
     charts.comparison.update();
 
-    // Line charts fix
     let trendValues = rawFiltered.slice(0, 20).map(d => d.val);
     charts.top1.data.labels = trendValues.map((_, i) => i);
     charts.top1.data.datasets[0].data = trendValues;
     charts.top1.update();
 
     charts.top2.data.labels = trendValues.map((_, i) => i);
-    charts.top2.data.datasets[0].data = trendValues.map(v => v * 0.7);
+    charts.top2.data.datasets[0].data = trendValues.map(v => v * 0.8);
     charts.top2.update();
 
     document.getElementById('mainPercent').innerText = groupedData.length > 0 ? "100%" : "0%";
-    document.getElementById('totalCountDisplay').innerText = `${groupedData.length} Clean Records Found`;
+    document.getElementById('totalCountDisplay').innerText = `${groupedData.length} Clean Records`;
 }
 
 function populateDateDropdown(dates) {
