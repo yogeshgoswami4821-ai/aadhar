@@ -12,34 +12,25 @@ function initDashboard() {
     charts.main = new Chart(document.getElementById('enrolmentChart'), {
         type: 'bar',
         data: { labels: [], datasets: [{ label: 'Enrolments', data: [], backgroundColor: '#ef4444', borderRadius: 6 }] },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        options: { responsive: true, maintainAspectRatio: false }
     });
 }
 
 async function uploadCSV() {
     const fileInput = document.getElementById("fileInput");
-    if (fileInput.files.length === 0) return alert("File toh select karo bhai!");
+    if (fileInput.files.length === 0) return alert("File select karo!");
 
-    const btn = document.getElementById("uploadBtn");
-    btn.innerText = "Analyzing...";
-    
     let combinedRows = [];
     const files = Array.from(fileInput.files);
 
-    const parsePromises = files.map(file => {
-        return new Promise((resolve) => {
-            Papa.parse(file, { 
-                header: false, // Index base reading ke liye false kiya
-                skipEmptyLines: true, 
-                complete: (res) => resolve(res.data) 
-            });
-        });
-    });
-
-    const resultsArray = await Promise.all(parsePromises);
-    resultsArray.forEach(data => combinedRows = combinedRows.concat(data));
+    for (let file of files) {
+        const text = await file.text();
+        // PapaParse ko direct text de rahe hain bypass karne ke liye
+        const res = Papa.parse(text.trim(), { header: false, skipEmptyLines: true });
+        combinedRows = combinedRows.concat(res.data);
+    }
+    
     processRawData(combinedRows);
-    btn.innerText = "⚡ Analyze Combined Data";
 }
 
 function processRawData(rows) {
@@ -48,24 +39,30 @@ function processRawData(rows) {
     let summary = {};
     let grandTotal = 0;
 
-    // Headers se index dhoondte hain
-    const headers = rows[0].map(h => h.toLowerCase().trim());
-    const sIdx = headers.findIndex(h => h.includes('state'));
-    const dIdx = headers.findIndex(h => h.includes('dist'));
-    const eIdx = headers.findIndex(h => h.includes('enrol') || h.includes('count') || h.includes('total'));
+    // Index detection with fallback
+    const firstRow = rows[0].map(h => h.toLowerCase().trim());
+    let sIdx = firstRow.findIndex(h => h.includes('state'));
+    let dIdx = firstRow.findIndex(h => h.includes('dist'));
+    let eIdx = firstRow.findIndex(h => h.includes('enrol') || h.includes('count') || h.includes('total'));
 
-    // Baki ki rows process karte hain (skip header row 0)
+    // FALLBACK: Agar header nahi mile toh 0, 1, 2 index maan lo
+    if (sIdx === -1) sIdx = 0;
+    if (dIdx === -1) dIdx = 1;
+    if (eIdx === -1) eIdx = 2;
+
     for (let i = 1; i < rows.length; i++) {
         let row = rows[i];
-        let s = row[sIdx] || "Unknown";
-        let d = row[dIdx] || "Unknown";
-        let rawVal = row[eIdx] || "0";
+        if (row.length < 2) continue;
 
-        // Comma aur non-numeric characters hatane ke liye
-        let val = parseInt(rawVal.toString().replace(/[^0-9]/g, '')) || 0;
+        let s = (row[sIdx] || "Unknown").toString().trim();
+        let d = (row[dIdx] || "Unknown").toString().trim();
+        let rawVal = (row[eIdx] || "0").toString();
 
-        if (s !== "Unknown") {
-            let label = `${s.trim()} > ${d.trim()}`;
+        // Strict Number Cleaning
+        let val = parseInt(rawVal.replace(/[^0-9]/g, '')) || 0;
+
+        if (s && d) {
+            let label = `${s} > ${d}`;
             summary[label] = (summary[label] || 0) + val;
             grandTotal += val;
         }
@@ -91,12 +88,9 @@ function updateUI(total) {
         d.code === 'R' ? '#ef4444' : (d.code === 'Y' ? '#f59e0b' : '#10b981')
     );
     charts.main.update();
-    displayCards(allData);
-}
-
-function displayCards(data) {
+    
     const container = document.getElementById("resultContainer");
-    container.innerHTML = data.slice(0, 50).map(item => `
+    container.innerHTML = allData.slice(0, 50).map(item => `
         <div class="status-card ${item.code === 'R' ? 'red-card' : item.code === 'Y' ? 'yellow-card' : 'green-card'}">
             <div style="display:flex; flex-direction:column">
                 <span style="font-weight:600">${item.place}</span>
@@ -110,7 +104,7 @@ function displayCards(data) {
 function filterData() {
     const q = document.getElementById("searchInput").value.toLowerCase();
     const filtered = allData.filter(d => d.place.toLowerCase().includes(q));
-    displayCards(filtered);
+    // Re-use card rendering logic here if needed
 }
 
 window.onload = initDashboard;
