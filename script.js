@@ -5,7 +5,7 @@ function uploadCSV() {
     const container = document.getElementById("resultContainer");
     const btn = document.getElementById("uploadBtn");
 
-    if (!fileInput.files || !fileInput.files[0]) {
+    if (!fileInput || !fileInput.files[0]) {
         alert("Please select a file first!");
         return;
     }
@@ -20,47 +20,46 @@ function uploadCSV() {
             processData(results.data);
             btn.innerText = "Analyze Hierarchy";
             btn.disabled = false;
-        },
-        error: function(err) {
-            console.error(err);
-            alert("Error reading CSV file");
-            btn.disabled = false;
         }
     });
 }
 
 function processData(data) {
     const container = document.getElementById("resultContainer");
-    if (!data || data.length === 0) {
-        container.innerHTML = "File is empty!";
-        return;
-    }
+    if (!data || data.length === 0) return;
 
     const keys = Object.keys(data[0]);
     
-    // Fuzzy search for headers
-    const findKey = (list) => keys.find(k => list.some(name => k.toLowerCase().trim().includes(name)));
+    // Sabse important fix: Kisi bhi tarah ki spelling ko accept karo
+    const findKey = (list) => keys.find(k => list.some(name => k.toLowerCase().trim().includes(name.toLowerCase())));
 
     const sKey = findKey(["state", "st"]);
     const dKey = findKey(["district", "dist"]);
-    const eKey = findKey(["enrol", "enroll", "count", "total"]);
-    const tKey = findKey(["tehsil", "sub-dist", "taluka", "block"]); // Tehsil is optional
+    
+    // Enrolment ke liye multiple variations
+    const eKey = findKey(["enrol", "enroll", "count", "total", "number", "qty"]);
+    
+    const tKey = findKey(["tehsil", "sub-dist", "taluka", "block"]);
 
-    // Mandatory Check
-    if (!sKey || !dKey || !eKey) {
-        container.innerHTML = `
-            <div style="color:red; border:2px solid red; padding:15px; border-radius:8px; background:#fff5f5;">
-                <h3>⚠️ HEADER ERROR</h3>
-                <p>Mandatory Columns Missing: ${!sKey ? 'State ' : ''} ${!dKey ? 'District ' : ''} ${!eKey ? 'Enrolment' : ''}</p>
-            </div>`;
+    // Agar abhi bhi enrolment nahi mil raha, toh first column jisme numbers hon usse uthao
+    let finalEnrolKey = eKey;
+    if (!finalEnrolKey) {
+        finalEnrolKey = keys.find(k => !isNaN(parseFloat(data[0][k])) && isFinite(data[0][k]));
+    }
+
+    if (!sKey || !dKey || !finalEnrolKey) {
+        container.innerHTML = `<div style="color:red; border:2px solid red; padding:15px; background:#fff5f5;">
+            <h3>⚠️ CSV HEADER ERROR</h3>
+            <p>Could not find 'Enrolment' or 'State' columns.</p>
+            <p>Please check your CSV file headers.</p>
+        </div>`;
         return;
     }
 
     let summary = {};
     data.forEach(row => {
-        // Dynamic path based on Tehsil availability
         let path = tKey ? `${row[sKey]} > ${row[dKey]} > ${row[tKey]}` : `${row[sKey]} > ${row[dKey]}`;
-        let val = parseInt(row[eKey]) || 0;
+        let val = parseInt(row[finalEnrolKey]) || 0;
         summary[path] = (summary[path] || 0) + val;
     });
 
@@ -68,11 +67,8 @@ function processData(data) {
     const avg = entries.length > 0 ? (entries.reduce((a, b) => a + b[1], 0) / entries.length) : 0;
 
     allData = entries.map(([place, val]) => {
-        let code = "G";
-        let status = "Stable";
-        if (val < (avg * 0.5)) { code = "R"; status = "Critical"; }
-        else if (val < avg) { code = "Y"; status = "Warning"; }
-        return { place, enrolment: val, code, status };
+        let code = val < (avg * 0.5) ? "R" : (val < avg ? "Y" : "G");
+        return { place, enrolment: val, code };
     });
 
     displayCards(allData);
@@ -81,31 +77,18 @@ function processData(data) {
 function displayCards(data) {
     const container = document.getElementById("resultContainer");
     container.innerHTML = "";
-    
-    if (data.length === 0) {
-        container.innerHTML = "No data found.";
-        return;
-    }
-
     data.slice(0, 100).forEach(item => {
-        const colorClass = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
-        const card = document.createElement("div");
-        card.className = `status-card ${colorClass}`;
-        card.innerHTML = `
+        const color = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
+        container.innerHTML += `<div class="status-card ${color}">
             <div class="badge">${item.code}</div>
-            <div class="card-info">
-                <h3>${item.place}</h3>
-                <p>Enrolment: ${item.enrolment.toLocaleString()}</p>
-                <p>Status: ${item.status}</p>
-            </div>`;
-        container.appendChild(card);
+            <h3>${item.place}</h3>
+            <p>Enrolment: ${item.enrolment.toLocaleString()}</p>
+        </div>`;
     });
 }
 
 function filterData() {
-    const query = document.getElementById("searchInput").value.toUpperCase();
-    const filtered = allData.filter(i => 
-        i.place.toUpperCase().includes(query) || i.code === query
-    );
+    const q = document.getElementById("searchInput").value.toUpperCase();
+    const filtered = allData.filter(d => d.place.toUpperCase().includes(q) || d.code === q);
     displayCards(filtered);
 }
