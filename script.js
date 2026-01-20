@@ -6,13 +6,11 @@ function initDashboard() {
 }
 
 function createCharts() {
-    // Purane charts destroy karke fresh canvas setup taaki blank na dikhe
+    // Purane charts destroy karke naya canvas load karna
     ['enrolmentChart', 'comparisonChart'].forEach(id => {
         let canvas = document.getElementById(id);
-        if (canvas) {
-            let freshCanvas = canvas.cloneNode(true);
-            canvas.parentNode.replaceChild(freshCanvas, canvas);
-        }
+        let freshCanvas = canvas.cloneNode(true);
+        canvas.parentNode.replaceChild(freshCanvas, canvas);
     });
 
     const ctx1 = document.getElementById('enrolmentChart').getContext('2d');
@@ -31,28 +29,25 @@ function createCharts() {
     });
 }
 
-// 1. CLEANING LOGIC: Dadra, Daman aur Darbhanga ko block karne ke liye
 function getCleanState(name) {
     if (!name) return null;
     let s = name.toString().toUpperCase().trim();
-
-    // Block List
-    const block = ["DADRA", "DAMAN", "NAGAR", "HAVELI", "DIU", "DARBHANGA", "100000", "AGE_", "TOTAL", "STEP"];
+    
+    // Sabhi faltu naam yahan se block
+    const block = ["DADRA", "DAMAN", "NAGAR", "HAVELI", "DARBHANGA", "100000", "AGE_", "STEP", "TOTAL"];
     if (block.some(b => s.includes(b))) return null;
 
-    // Merge Variations (West Bengal, Chhattisgarh etc.)
+    // Duplicates merge logic
     if (s.includes("BENG") || s.includes("BANGAL")) return "West Bengal";
     if (s.includes("CHHATTIS")) return "Chhattisgarh";
     if (s.includes("JAMMU")) return "Jammu & Kashmir";
-    if (s.includes("UTTARANCHAL")) return "Uttarakhand";
-    if (s.includes("PUDU") || s.includes("PONDI")) return "Puducherry";
-
+    
     return s.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 }
 
 async function uploadCSV() {
     const files = document.getElementById("fileInput").files;
-    if (!files.length) return alert("Bhai, file select karo!");
+    if (!files.length) return;
     
     let rows = [];
     for (let f of files) {
@@ -69,32 +64,31 @@ function parseData(rows) {
 
     rows.forEach((row, i) => {
         if (row.length < 3) return;
-
-        // Date Detection
-        let dateVal = row.find(v => v && (v.includes('/') || v.includes('-')) && v.length > 5);
         
-        // Numbers Detection (Enrolment)
+        // Date find
+        let dateVal = row.find(v => v && (v.includes('/') || v.includes('-')) && v.length > 5);
+        if (!dateVal) return;
+
+        // Numbers find (Enrolment)
         let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
         let maxVal = Math.max(...nums);
 
-        // State & District Detection
-        let texts = row.filter(v => v && isNaN(v) && v.length > 2 && !v.includes('/') && !v.includes('-'));
-        let stateClean = getCleanState(texts[0]);
-        let distName = texts[1] || texts[0];
+        // State/Dist find
+        let textCols = row.filter(v => v && isNaN(v) && v.length > 2 && !v.includes('/') && !v.includes('-'));
+        let stateClean = getCleanState(textCols[0]);
+        let distName = textCols[1] || textCols[0];
 
         if (stateClean && maxVal > 0) {
-            allData.push({
-                date: (dateVal || "All").trim(),
-                state: stateClean,
-                dist: distName.trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
-                val: maxVal
+            allData.push({ 
+                date: dateVal.trim(), 
+                state: stateClean, 
+                dist: distName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()), 
+                val: maxVal 
             });
-            if(dateVal) dates.add(dateVal.trim());
+            dates.add(dateVal.trim());
         }
     });
 
-    // Refresh UI
-    createCharts(); 
     populateDateDropdown([...dates]);
     populateStateList();
     applyFilters();
@@ -128,7 +122,6 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    // Deduplication/Merging
     let grouped = {};
     filtered.forEach(item => {
         let key = item.dist + "|" + item.state;
@@ -143,7 +136,6 @@ function applyFilters() {
 function updateDashboard(data) {
     const top = data.slice(0, 10);
     
-    // Update Charts
     charts.main.data.labels = top.map(d => d.dist);
     charts.main.data.datasets[0].data = top.map(d => d.val);
     charts.main.update();
@@ -152,7 +144,6 @@ function updateDashboard(data) {
     charts.comparison.data.datasets[0].data = top.slice(0, 5).map(d => d.val);
     charts.comparison.update();
 
-    // Update Status Cards
     document.getElementById("resultContainer").innerHTML = data.slice(0, 50).map(d => `
         <div class="status-card">
             <div><strong>${d.dist}</strong> <br> <small>${d.state}</small></div>
