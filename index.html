@@ -16,6 +16,7 @@
     </header>
 
     <main class="dashboard-grid">
+        
         <section class="card small-chart">
             <h3>Total Enrolments</h3>
             <div class="chart-container">
@@ -47,8 +48,10 @@
 
         <section class="card">
             <h3>Step 1: Data Ingestion</h3>
-            <input type="file" id="fileInput" accept=".csv" multiple>
-            <button onclick="uploadCSV()" id="uploadBtn">Analyze Combined Data</button>
+            <div class="filter-controls">
+                <input type="file" id="fileInput" accept=".csv" multiple>
+                <button onclick="uploadCSV()" id="uploadBtn">Analyze Combined Data</button>
+            </div>
         </section>
 
         <section class="card search-section">
@@ -73,6 +76,7 @@
                 <canvas id="enrolmentChart"></canvas>
             </div>
         </section>
+        
     </main>
 
     <script src="script.js"></script>
