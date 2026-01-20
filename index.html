@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aadhaar Hierarchy Analytics</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 </head>
 <body>
@@ -23,24 +22,20 @@
                 <input type="file" id="fileInput" accept=".csv">
                 <button onclick="uploadCSV()" id="uploadBtn">Analyze Hierarchy</button>
             </div>
-            <p><small>Headers Needed: State, District, Tehsil, Enrolment</small></p>
+            <p id="errorMsg" style="color:red; display:none;"></p>
         </section>
 
         <section class="search-section card">
-            <h2>Step 2: Monitoring</h2>
+            <h2>Step 2: Real-time Monitoring</h2>
             <div class="search-box">
-                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search Place or Status (R, G, Y)...">
+                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search by Place or Status (R, G, Y)...">
             </div>
         </section>
 
         <section id="resultContainer" class="result-grid">
-            <div class="placeholder-text">Upload CSV to see insights.</div>
+            <div class="placeholder-text">Upload file to see cards.</div>
         </section>
     </main>
-
-    <footer>
-        <p>&copy; 2026 Aadhaar Analytics Framework</p>
-    </footer>
 
     <script src="script.js"></script>
 </body>
