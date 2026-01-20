@@ -1,186 +1,50 @@
-/* General Setup */
-body { 
-    font-family: 'Inter', sans-serif; 
-    background: #f1f5f9; 
-    margin: 0; 
-    padding: 20px;
-    color: #1e293b;
-}
+body { font-family: 'Inter', sans-serif; background: #f1f5f9; margin: 0; padding: 20px; }
+header { text-align: center; padding: 20px 0; }
+header h1 { color: #1e3a8a; font-size: 24px; margin: 5px 0; }
+.design-icons { letter-spacing: 5px; color: #64748b; font-size: 18px; }
 
-header { 
-    text-align: center; 
-    margin-bottom: 30px; 
-}
-
-header h1 { 
-    color: #1e3a8a; 
-    font-size: 28px; 
-    margin: 10px 0;
-}
-
-.design-icons { 
-    margin-bottom: 10px; 
-    font-size: 20px; 
-    letter-spacing: 8px; 
-    color: #64748b;
-}
-
-/* Dashboard Grid Layout - Image ke according 4 columns */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: minmax(150px, auto);
     gap: 20px;
-    max-width: 1300px;
+    max-width: 1400px;
     margin: 0 auto;
 }
 
-/* Card Styling */
 .card {
-    background: white;
-    padding: 20px;
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    display: flex;
-    flex-direction: column;
-    transition: transform 0.2s;
+    background: white; padding: 20px; border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column;
 }
 
-.card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
+.card h3 { font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 15px; }
 
-.card h3, .card h2 {
-    font-size: 14px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #64748b;
-    margin-bottom: 15px;
-    margin-top: 0;
-}
+.map-box { grid-column: span 2; grid-row: span 2; min-height: 400px; align-items: center; justify-content: center; }
+.map-container img { height: 380px; width: auto; filter: hue-rotate(160deg) brightness(1.1); }
 
-/* Specific Layout Adjustments */
-.map-box { 
-    grid-column: span 2; 
-    grid-row: span 2; 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: #fff;
-}
-
-.map-placeholder img {
-    max-width: 100%;
-    height: auto;
-    filter: hue-rotate(200deg) brightness(1.1); /* Map ko blue theme dene ke liye */
-}
-
-.donut-box {
-    grid-column: span 1;
-    text-align: center;
-    align-items: center;
-    justify-content: center;
-}
-
+.donut-box { text-align: center; align-items: center; justify-content: center; }
 .circle-wrap {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    border: 8px solid #e2e8f0;
-    border-top: 8px solid #3b82f6; /* Image ki tarah blue progress bar */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 10px;
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 10px solid #e2e8f0; border-top: 10px solid #3b82f6;
+    display: flex; align-items: center; justify-content: center; margin: 15px 0;
 }
+.percent { font-size: 24px; font-weight: bold; color: #1e3a8a; }
 
-.percent {
-    font-size: 22px;
-    font-weight: bold;
-    color: #1e3a8a;
-}
+.search-section { grid-column: span 1; grid-row: span 2; }
+.wide-chart { grid-column: span 3; height: 300px; }
+.small-chart { height: 180px; }
 
-.search-section {
-    grid-column: span 1;
-    grid-row: span 2;
-}
+.chart-container { flex-grow: 1; position: relative; }
 
-.chart-container {
-    flex-grow: 1;
-    position: relative;
-}
-
-/* Inputs & Buttons */
-#searchInput, #fileInput {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    border: 2px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
-}
-
-#searchInput:focus {
-    border-color: #3b82f6;
-}
-
-button {
-    background: #3b82f6;
-    color: white;
-    border: none;
-    padding: 12px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-weight: 600;
-    width: 100%;
-}
-
-button:hover {
-    background: #1e3a8a;
-}
-
-/* Status Cards inside Search Results */
-.result-grid {
-    margin-top: 15px;
-    overflow-y: auto;
-    max-height: 400px;
-}
+#searchInput, #fileInput { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0; border-radius: 8px; }
+button { background: #3b82f6; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+button:hover { background: #2563eb; }
 
 .status-card {
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 12px;
-    border-left: 6px solid #cbd5e1;
-    background: #f8fafc;
-    font-size: 14px;
-    display: flex;
-    justify-content: space-between;
+    padding: 12px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid #cbd5e1;
+    background: #f8fafc; font-size: 13px; display: flex; justify-content: space-between; align-items: center;
 }
+.red-card { border-color: #ef4444; }
+.yellow-card { border-color: #f59e0b; }
+.green-card { border-color: #10b981; }
 
-.red-card { border-color: #ef4444; background: #fef2f2; }
-.yellow-card { border-color: #f59e0b; background: #fffbeb; }
-.green-card { border-color: #10b981; background: #ecfdf5; }
-
-/* Responsive Adjustments */
-@media (max-width: 1024px) {
-    .dashboard-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 600px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-    .map-box { grid-column: span 1; }
-}
-
-footer {
-    text-align: center;
-    padding: 40px;
-    color: #94a3b8;
-    font-size: 12px;
-}
+@media (max-width: 1024px) { .dashboard-grid { grid-template-columns: repeat(2, 1fr); } }
