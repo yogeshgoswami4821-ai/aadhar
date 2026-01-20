@@ -18,53 +18,43 @@ function initDashboard() {
 
 async function uploadCSV() {
     const fileInput = document.getElementById("fileInput");
-    if (fileInput.files.length === 0) return alert("File select karo!");
+    if (fileInput.files.length === 0) return alert("File select karein!");
 
     let combinedRows = [];
     const files = Array.from(fileInput.files);
 
     for (let file of files) {
         const text = await file.text();
-        // PapaParse ko direct text de rahe hain bypass karne ke liye
         const res = Papa.parse(text.trim(), { header: false, skipEmptyLines: true });
         combinedRows = combinedRows.concat(res.data);
     }
-    
-    processRawData(combinedRows);
+    processUniversalData(combinedRows);
 }
 
-function processRawData(rows) {
+function processUniversalData(rows) {
     if (rows.length < 2) return;
-
     let summary = {};
     let grandTotal = 0;
 
-    // Index detection with fallback
-    const firstRow = rows[0].map(h => h.toLowerCase().trim());
-    let sIdx = firstRow.findIndex(h => h.includes('state'));
-    let dIdx = firstRow.findIndex(h => h.includes('dist'));
-    let eIdx = firstRow.findIndex(h => h.includes('enrol') || h.includes('count') || h.includes('total'));
-
-    // FALLBACK: Agar header nahi mile toh 0, 1, 2 index maan lo
-    if (sIdx === -1) sIdx = 0;
-    if (dIdx === -1) dIdx = 1;
-    if (eIdx === -1) eIdx = 2;
-
+    // Pehli row (headers) ko skip karke data nikalte hain
     for (let i = 1; i < rows.length; i++) {
         let row = rows[i];
         if (row.length < 2) continue;
 
-        let s = (row[sIdx] || "Unknown").toString().trim();
-        let d = (row[dIdx] || "Unknown").toString().trim();
-        let rawVal = (row[eIdx] || "0").toString();
+        // Auto-Detect Logic:
+        // 1. Jo text hai wo State/District hoga
+        // 2. Jo bada number hai wo Enrolment hoga
+        let strings = row.filter(val => isNaN(val.toString().replace(/,/g, '')));
+        let numbers = row.map(val => parseInt(val.toString().replace(/[^0-9]/g, '')) || 0);
+        
+        let state = strings[0] || "Unknown";
+        let dist = strings[1] || "Unknown";
+        let enrolment = Math.max(...numbers); // Row ka sabse bada number uthao
 
-        // Strict Number Cleaning
-        let val = parseInt(rawVal.replace(/[^0-9]/g, '')) || 0;
-
-        if (s && d) {
-            let label = `${s} > ${d}`;
-            summary[label] = (summary[label] || 0) + val;
-            grandTotal += val;
+        if (enrolment > 0) {
+            let label = `${state.trim()} > ${dist.trim()}`;
+            summary[label] = (summary[label] || 0) + enrolment;
+            grandTotal += enrolment;
         }
     }
 
@@ -82,7 +72,7 @@ function updateUI(total) {
     document.getElementById('mainPercent').innerText = total > 0 ? "100%" : "0%";
     
     const top10 = allData.slice(0, 10);
-    charts.main.data.labels = top10.map(d => d.place.split(' > ')[1]);
+    charts.main.data.labels = top10.map(d => d.place.split(' > ')[1] || d.place);
     charts.main.data.datasets[0].data = top10.map(d => d.enrolment);
     charts.main.data.datasets[0].backgroundColor = top10.map(d => 
         d.code === 'R' ? '#ef4444' : (d.code === 'Y' ? '#f59e0b' : '#10b981')
@@ -99,12 +89,6 @@ function updateUI(total) {
             <strong>${item.enrolment.toLocaleString()}</strong>
         </div>
     `).join('');
-}
-
-function filterData() {
-    const q = document.getElementById("searchInput").value.toLowerCase();
-    const filtered = allData.filter(d => d.place.toLowerCase().includes(q));
-    // Re-use card rendering logic here if needed
 }
 
 window.onload = initDashboard;
