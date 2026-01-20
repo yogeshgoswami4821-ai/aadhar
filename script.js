@@ -5,7 +5,7 @@ function uploadCSV() {
     const container = document.getElementById("resultContainer");
     const btn = document.getElementById("uploadBtn");
 
-    if (!fileInput.files[0]) return alert("Select a file!");
+    if (!fileInput.files[0]) return alert("Please select a file!");
 
     btn.innerText = "⚡ Processing...";
     btn.disabled = true;
@@ -25,20 +25,23 @@ function processData(data) {
     const container = document.getElementById("resultContainer");
     if (!data || data.length === 0) return;
 
-    // Flexible Header Detection
     const keys = Object.keys(data[0]);
-    const findKey = (name) => keys.find(k => k.toLowerCase().trim().includes(name.toLowerCase()));
+    
+    // Sabse important fix: Flexible search for Tehsil and Enrolment
+    const findKey = (list) => keys.find(k => list.some(name => k.toLowerCase().trim().includes(name)));
 
-    const sKey = findKey("state");
-    const dKey = findKey("district");
-    const tKey = findKey("tehsil");
-    const eKey = findKey("enrol") || findKey("count");
+    const sKey = findKey(["state", "st"]);
+    const dKey = findKey(["district", "dist"]);
+    const tKey = findKey(["tehsil", "sub-dist", "taluka", "block"]); // Tehsil fix
+    const eKey = findKey(["enrol", "enroll", "count", "total"]); // Enrolment fix
 
     if (!sKey || !dKey || !tKey || !eKey) {
-        container.innerHTML = `<div style="color:red; border:2px solid red; padding:15px; border-radius:8px;">
-            <h3>⚠️ CSV HEADER ERROR</h3>
-            <p>Missing: ${[!sKey?"State ":" ", !dKey?"District ":" ", !tKey?"Tehsil ":" ", !eKey?"Enrolment":""].join("")}</p>
-        </div>`;
+        container.innerHTML = `
+            <div style="color:red; border:2px solid red; padding:15px; border-radius:8px; background:#fff5f5;">
+                <h3>⚠️ CSV HEADER ERROR</h3>
+                <p>Missing: ${!sKey?'State ':''} ${!dKey?'District ':''} ${!tKey?'Tehsil ':''} ${!eKey?'Enrolment':''}</p>
+                <p><small>Headers must be: State, District, Tehsil, Enrolment</small></p>
+            </div>`;
         return;
     }
 
@@ -55,7 +58,8 @@ function processData(data) {
     allData = entries.map(([place, val]) => ({
         place,
         enrolment: val,
-        code: val < (avg * 0.5) ? "R" : (val < avg ? "Y" : "G")
+        code: val < (avg * 0.5) ? "R" : (val < avg ? "Y" : "G"),
+        status: val < (avg * 0.5) ? "Critical" : (val < avg ? "Warning" : "Stable")
     }));
 
     displayCards(allData);
@@ -66,11 +70,15 @@ function displayCards(data) {
     container.innerHTML = "";
     data.slice(0, 100).forEach(item => {
         const color = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
-        container.innerHTML += `<div class="status-card ${color}">
-            <div class="badge">${item.code}</div>
-            <h3>${item.place}</h3>
-            <p>Enrolment: ${item.enrolment.toLocaleString()}</p>
-        </div>`;
+        container.innerHTML += `
+            <div class="status-card ${color}">
+                <div class="badge">${item.code}</div>
+                <div class="card-info">
+                    <h3>${item.place}</h3>
+                    <p><strong>Enrolment:</strong> ${item.enrolment.toLocaleString()}</p>
+                    <p><strong>Analysis:</strong> ${item.status}</p>
+                </div>
+            </div>`;
     });
 }
 
