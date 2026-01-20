@@ -14,30 +14,46 @@ function initDashboard() {
     charts.comparison = new Chart(document.getElementById('comparisonChart'), config('doughnut', ['#3b82f6','#8b5cf6','#ef4444','#f59e0b','#10b981']));
 }
 
-// 1. Sabse Strict Cleaning Logic - Double Name Problem Solver
+// 1. Sabse Strict Filter: Jo ss mein naam dikh rahe hain unka ilaaj
 function cleanStateName(name) {
     if (!name) return null;
 
     let clean = name.toString()
-        .replace(/[^\x20-\x7E]/g, '') // Invisible/Hidden characters hatana
+        .replace(/[^\x20-\x7E]/g, '') // Invisible junk hatana
         .trim()
         .toUpperCase()
-        .replace(/\s+/g, ' ') // Double spaces hatana
-        .replace(/\s+AND\s+/g, ' & ') // "AND" ko "&" banana merge karne ke liye
-        .replace(/WESTBENGAL|WEST BANGAL|WEST BENGLI/g, 'WEST BENGAL') // Spelling Fix
-        .replace(/PONDICHERRY/g, 'PUDUCHERRY');
+        .replace(/\s+/g, ' ');
 
-    // Title Case (e.g., West Bengal)
-    clean = clean.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-    
-    // Specific Fix for "&" spacing
-    clean = clean.replace("& N", "& N").replace("& K", "& K");
+    // Darbhanga aur Step 2 jaise faltu naam ko turant reject karo
+    const blockList = ["DARBHANGA", "STEP 2", "STEP 2: MONITORING", "TOTAL", "UNKNOWN", "UNDEFINED"];
+    if (blockList.some(b => clean.includes(b)) || /\d/.test(clean) || clean.length < 4) {
+        return null;
+    }
 
-    // Blocklist: Jo naam state nahi hain unhe list se nikalne ke liye
-    const blockList = ["Darbhanga", "Bhopal", "Indore", "Patna", "Lucknow", "Unknown", "Undefined", "Total"];
-    if (blockList.includes(clean) || /\d/.test(clean) || clean.length < 4) return null;
+    // Dadra, Daman aur Nagar Haveli ko ek hi naam mein merge karna
+    if (clean.includes("DADRA") || clean.includes("DAMAN") || clean.includes("NAGAR HAVELI")) {
+        return "Dadra & Nagar Haveli & Daman & Diu";
+    }
 
-    return clean;
+    // Andaman duplicates fix
+    if (clean.includes("ANDAMAN")) return "Andaman & Nicobar Islands";
+
+    // Jammu duplicates fix
+    if (clean.includes("JAMMU")) return "Jammu & Kashmir";
+
+    // West Bengal variations fix
+    if (clean.includes("WEST BENGAL") || clean.includes("WESTBANGAL") || clean.includes("WESTBENGLI")) {
+        return "West Bengal";
+    }
+
+    // Chhattisgarh hidden character fix
+    if (clean.includes("CHHATTISGARH")) return "Chhattisgarh";
+
+    // Puducherry/Pondicherry fix
+    if (clean.includes("PONDICHERRY") || clean.includes("PUDUCHERRY")) return "Puducherry";
+
+    // Baaki sab ke liye Proper Case
+    return clean.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 }
 
 async function uploadCSV() {
@@ -86,7 +102,7 @@ function parseData(rows) {
 }
 
 function populateStateList() {
-    // Unique states ka set - Ab repeat nahi hoga!
+    // Unique states - Ab Dadra/Daman alag-alag nahi dikhenge
     const states = [...new Set(allData.map(d => d.state))].sort();
     const container = document.getElementById('stateList');
     
@@ -102,7 +118,7 @@ function updateDistrictList() {
     const container = document.getElementById('distList');
     
     if (selectedStates.length === 0) {
-        container.innerHTML = '<p style="font-size:11px; color:gray; padding:5px;">State select karein...</p>';
+        container.innerHTML = '<p style="font-size:11px; color:gray; padding:5px;">Select State...</p>';
     } else {
         const districts = [...new Set(allData.filter(d => selectedStates.includes(d.state)).map(d => d.dist))].sort();
         container.innerHTML = districts.map(d => `
@@ -124,7 +140,6 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    // Grouping by District
     let groupedMap = {};
     filtered.forEach(item => {
         let key = item.dist;
@@ -141,7 +156,6 @@ function applyFilters() {
 
 function updateCharts(groupedData, rawFiltered) {
     const top10 = groupedData.slice(0, 10);
-    
     charts.main.data.labels = top10.map(d => d.dist);
     charts.main.data.datasets[0].data = top10.map(d => d.val);
     charts.main.update();
@@ -159,8 +173,7 @@ function updateCharts(groupedData, rawFiltered) {
     charts.top2.data.datasets[0].data = trendValues.map(v => v * 0.8);
     charts.top2.update();
 
-    document.getElementById('mainPercent').innerText = groupedData.length > 0 ? "100%" : "0%";
-    document.getElementById('totalCountDisplay').innerText = `${groupedData.length} Clean Districts`;
+    document.getElementById('totalCountDisplay').innerText = `${groupedData.length} Clean Records`;
 }
 
 function populateDateDropdown(dates) {
