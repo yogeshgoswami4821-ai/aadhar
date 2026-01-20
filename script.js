@@ -13,30 +13,31 @@ function initDashboard() {
     charts.top2 = new Chart(document.getElementById('topChart2'), config('line', '#8b5cf6'));
 }
 
-// 1. CLEANING LOGIC: Sab kachra saaf aur merge karne ke liye
+// --- Dadra/Daman hataane aur spelling theek karne ka logic ---
 function getCleanState(name) {
     if (!name) return null;
     let s = name.toString().toUpperCase().trim();
 
-    // Dadra, Daman, aur Darbhanga ko seedha BLOCK karo
-    if (s.includes("DADRA") || s.includes("DAMAN") || s.includes("DARBHANGA") || s.includes("AGE_") || s.includes("100000")) {
+    // 1. Inhe list se poori tarah nikaal do
+    if (s.includes("DADRA") || s.includes("DAMAN") || s.includes("NAGAR HAVELI") || s.includes("DARBHANGA") || s.includes("AGE_") || s.includes("100000")) {
         return null;
     }
 
-    // West Bengal ke saare spelling variations merge karo
+    // 2. Spelling merge (Taki West Bengal 4 baar na dikhe)
     if (s.includes("BENG") || s.includes("BANGAL")) return "West Bengal";
     if (s.includes("CHHATTIS")) return "Chhattisgarh";
     if (s.includes("JAMMU")) return "Jammu & Kashmir";
     if (s.includes("PUDU") || s.includes("PONDI")) return "Puducherry";
     if (s.includes("ANDAMAN")) return "Andaman & Nicobar Islands";
+    if (s.includes("UTTARANCHAL")) return "Uttarakhand";
 
-    // Baaki sabko title case mein badlo (e.g. BIHAR -> Bihar)
+    // Baaki sabko sundar format mein badlo
     return s.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 }
 
 async function uploadCSV() {
     const files = document.getElementById("fileInput").files;
-    if (!files.length) return alert("Pehle file chuno bhai!");
+    if (!files.length) return alert("Bhai, pehle file toh select karo!");
     
     let rows = [];
     for (let f of files) {
@@ -52,37 +53,36 @@ function parseData(rows) {
     let dates = new Set();
 
     rows.forEach((row, i) => {
-        // Sirf un rows ko lo jisme data ho
         if (row.length < 3) return;
 
-        // Date column pehchano (e.g. 2024-01-20 or 20/01/24)
-        let dateIdx = row.findIndex(v => v && (v.includes('/') || v.includes('-')) && v.length > 5);
-        if (dateIdx === -1) return;
+        // Smart Column Detection
+        let dateVal = row.find(v => v && (v.includes('/') || v.includes('-')) && v.length > 5);
+        if (!dateVal) return;
 
-        let rawState = row[dateIdx + 1];
-        let rawDist = row[dateIdx + 2];
+        // Text columns ko filter karo (jo number nahi hain)
+        let textCols = row.filter(v => v && isNaN(v) && v.length > 2);
+        let stateName = textCols[1]; // Maan ke chal rahe hain 2nd text column state hai
+        let distName = textCols[2] || textCols[1];
 
-        let stateVal = getCleanState(rawState);
-        let distVal = rawDist ? rawDist.toString().trim() : "";
+        let stateClean = getCleanState(stateName);
+        
+        // Sabse bada number dhundo row mein
+        let numbers = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, ''))).filter(n => !isNaN(n));
+        let maxVal = numbers.length > 0 ? Math.max(...numbers) : 0;
 
-        // Agar state valid hai aur district koi number nahi hai
-        if (stateVal && distVal && isNaN(distVal) && distVal.length > 2) {
-            // Row mein se sabse bada number dhoondo (vahi enrolment count hai)
-            let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
-            let val = Math.max(...nums);
-
+        if (stateClean && maxVal > 0) {
             allData.push({
-                date: row[dateIdx].trim(),
-                state: stateVal,
-                dist: distVal.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
-                val: val
+                date: dateVal.trim(),
+                state: stateClean,
+                dist: distName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
+                val: maxVal
             });
-            dates.add(row[dateIdx].trim());
+            dates.add(dateVal.trim());
         }
     });
 
     if (allData.length === 0) {
-        alert("Data load nahi hua! Shayad CSV columns alag hain.");
+        alert("Data load nahi ho paya! Check karein ki CSV mein numbers aur states sahi hain.");
     }
 
     populateDateDropdown([...dates]);
@@ -102,10 +102,7 @@ function populateStateList() {
 function updateDistrictList() {
     const selStates = Array.from(document.querySelectorAll('.state-check:checked')).map(i => i.value);
     const container = document.getElementById('distList');
-    
-    const districts = [...new Set(allData
-        .filter(d => selStates.length === 0 || selStates.includes(d.state))
-        .map(d => d.dist))].sort();
+    const districts = [...new Set(allData.filter(d => !selStates.length || selStates.includes(d.state)).map(d => d.dist))].sort();
     
     container.innerHTML = districts.map(d => `
         <div class="multi-select-item">
@@ -125,7 +122,7 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    // Same city/state ko merge karo (Group by)
+    // Deduplication logic
     let grouped = {};
     filtered.forEach(item => {
         let key = item.dist + "|" + item.state;
@@ -140,15 +137,19 @@ function applyFilters() {
 
 function updateCharts(data) {
     const top = data.slice(0, 10);
+    
+    // Main Chart Update
     charts.main.data.labels = top.map(d => d.dist);
     charts.main.data.datasets[0].data = top.map(d => d.val);
     charts.main.update();
 
+    // Comparison Chart Update
     charts.comparison.data.labels = top.slice(0, 5).map(d => d.dist);
     charts.comparison.data.datasets[0].data = top.slice(0, 5).map(d => d.val);
     charts.comparison.update();
 
-    document.getElementById('totalCountDisplay').innerText = `${data.length} Regions Loaded`;
+    // Stats Display
+    document.getElementById('totalCountDisplay').innerText = `${data.length} Regions Active`;
 }
 
 function populateDateDropdown(dates) {
