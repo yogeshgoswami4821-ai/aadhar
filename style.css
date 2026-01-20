@@ -24,13 +24,11 @@ header h1 { color: #1e3a8a; font-size: 26px; font-weight: 700; }
 
 .card h3 { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 0.05em; }
 
-/* Naya Comparison Chart Box */
+/* Comparison Chart Box (Map ki jagah) */
 .comparison-chart-box { 
     grid-column: span 2; 
     grid-row: span 2; 
     min-height: 480px; 
-    justify-content: center; 
-    align-items: center; 
 }
 
 /* Status Circle (Donut) */
@@ -42,12 +40,24 @@ header h1 { color: #1e3a8a; font-size: 26px; font-weight: 700; }
 }
 .percent { font-size: 22px; font-weight: 700; color: #1e40af; }
 
-/* Grid Spanning */
+/* Grid Spanning & Heights */
 .search-section { grid-column: span 1; grid-row: span 2; }
 .wide-chart { grid-column: span 3; min-height: 320px; }
-.small-chart { height: 170px; }
 
-.chart-container { flex-grow: 1; position: relative; width: 100%; height: 100%; }
+/* Top Charts Trend Lines Fix */
+.small-chart { height: 200px; justify-content: space-between; }
+.chart-container { 
+    flex-grow: 1; 
+    position: relative; 
+    width: 100%; 
+    height: 100%; 
+    max-height: 120px; /* Mini trend line height */
+}
+
+/* Wide Chart Container Fix */
+.wide-chart .chart-container {
+    max-height: 250px;
+}
 
 /* Form Elements */
 #searchInput, #fileInput { 
