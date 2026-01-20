@@ -7,58 +7,45 @@ function initDashboard() {
         data: { labels: [], datasets: [{ data: [], backgroundColor: color, borderColor: color, tension: 0.4, fill: true, pointRadius: 2 }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: (type === 'doughnut') } } }
     });
-
-    charts.top1 = new Chart(document.getElementById('topChart1'), config('line', '#3b82f6'));
-    charts.top2 = new Chart(document.getElementById('topChart2'), config('line', '#8b5cf6'));
     charts.main = new Chart(document.getElementById('enrolmentChart'), config('bar', '#ef4444'));
     charts.comparison = new Chart(document.getElementById('comparisonChart'), config('doughnut', ['#3b82f6','#8b5cf6','#ef4444','#f59e0b','#10b981']));
+    charts.top1 = new Chart(document.getElementById('topChart1'), config('line', '#3b82f6'));
+    charts.top2 = new Chart(document.getElementById('topChart2'), config('line', '#8b5cf6'));
 }
 
-// 1. Sabse Strict Filter: Jo ss mein naam dikh rahe hain unka ilaaj
+// YAHAN HAI MAIN ILAJ: Sirf asli States allow honge
 function cleanStateName(name) {
     if (!name) return null;
 
-    let clean = name.toString()
-        .replace(/[^\x20-\x7E]/g, '') // Invisible junk hatana
-        .trim()
-        .toUpperCase()
-        .replace(/\s+/g, ' ');
+    let clean = name.toString().toUpperCase().replace(/[^\x20-\x7E]/g, '').trim();
 
-    // Darbhanga aur Step 2 jaise faltu naam ko turant reject karo
-    const blockList = ["DARBHANGA", "STEP 2", "STEP 2: MONITORING", "TOTAL", "UNKNOWN", "UNDEFINED"];
-    if (blockList.some(b => clean.includes(b)) || /\d/.test(clean) || clean.length < 4) {
-        return null;
-    }
-
-    // Dadra, Daman aur Nagar Haveli ko ek hi naam mein merge karna
+    // 1. Dadra aur Daman ki sari nautanki khatam - Sabko ek karo
     if (clean.includes("DADRA") || clean.includes("DAMAN") || clean.includes("NAGAR HAVELI")) {
         return "Dadra & Nagar Haveli & Daman & Diu";
     }
 
-    // Andaman duplicates fix
-    if (clean.includes("ANDAMAN")) return "Andaman & Nicobar Islands";
-
-    // Jammu duplicates fix
-    if (clean.includes("JAMMU")) return "Jammu & Kashmir";
-
-    // West Bengal variations fix
-    if (clean.includes("WEST BENGAL") || clean.includes("WESTBANGAL") || clean.includes("WESTBENGLI")) {
+    // 2. West Bengal ke saare galat naam ek karo
+    if (clean.includes("WEST") && (clean.includes("BENGAL") || clean.includes("BANGAL") || clean.includes("BENGLI"))) {
         return "West Bengal";
     }
 
-    // Chhattisgarh hidden character fix
+    // 3. Andaman & Jammu variations fix
+    if (clean.includes("ANDAMAN")) return "Andaman & Nicobar Islands";
+    if (clean.includes("JAMMU")) return "Jammu & Kashmir";
+    if (clean.includes("PONDICHERRY") || clean.includes("PUDUCHERRY")) return "Puducherry";
     if (clean.includes("CHHATTISGARH")) return "Chhattisgarh";
 
-    // Puducherry/Pondicherry fix
-    if (clean.includes("PONDICHERRY") || clean.includes("PUDUCHERRY")) return "Puducherry";
+    // 4. BLOCKLIST: Darbhanga aur faltu kachra hatao
+    const blockList = ["DARBHANGA", "STEP", "MONITORING", "TOTAL", "UNKNOWN", "UNDEFINED", "SELECT", "PLACE"];
+    if (blockList.some(b => clean.includes(b)) || clean.length < 4) return null;
 
-    // Baaki sab ke liye Proper Case
+    // Proper formatting (e.g., Goa, Maharashtra)
     return clean.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 }
 
 async function uploadCSV() {
     const files = document.getElementById("fileInput").files;
-    if (!files.length) return alert("Pehle file select karo!");
+    if (!files.length) return alert("File chuno!");
     let rows = [];
     for (let f of files) {
         const text = await f.text();
@@ -79,20 +66,13 @@ function parseData(rows) {
         if (dateIdx === -1) return;
 
         let dateVal = row[dateIdx].trim();
-        let stateRaw = row[dateIdx + 1] ? row[dateIdx + 1] : "";
-        let distRaw = row[dateIdx + 2] ? row[dateIdx + 2] : "";
-        
-        let stateVal = cleanStateName(stateRaw);
-        let distVal = distRaw.toString().trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+        let stateVal = cleanStateName(row[dateIdx + 1]);
+        let distVal = row[dateIdx + 2] ? row[dateIdx + 2].toString().trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase()) : "";
 
         if (stateVal) {
             let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
-            let enrollment = Math.max(...nums);
-            
-            if (enrollment > 0) {
-                dates.add(dateVal);
-                allData.push({ date: dateVal, state: stateVal, dist: distVal, val: enrollment });
-            }
+            allData.push({ date: dateVal, state: stateVal, dist: distVal, val: Math.max(...nums) });
+            dates.add(dateVal);
         }
     });
 
@@ -102,11 +82,9 @@ function parseData(rows) {
 }
 
 function populateStateList() {
-    // Unique states - Ab Dadra/Daman alag-alag nahi dikhenge
+    // Unique Set taaki koi bhi state do baar na aaye
     const states = [...new Set(allData.map(d => d.state))].sort();
-    const container = document.getElementById('stateList');
-    
-    container.innerHTML = states.map(s => `
+    document.getElementById('stateList').innerHTML = states.map(s => `
         <div class="multi-select-item">
             <input type="checkbox" class="state-check" value="${s}" onchange="updateDistrictList()"> ${s}
         </div>
@@ -114,13 +92,13 @@ function populateStateList() {
 }
 
 function updateDistrictList() {
-    const selectedStates = Array.from(document.querySelectorAll('.state-check:checked')).map(i => i.value);
+    const selStates = Array.from(document.querySelectorAll('.state-check:checked')).map(i => i.value);
     const container = document.getElementById('distList');
     
-    if (selectedStates.length === 0) {
-        container.innerHTML = '<p style="font-size:11px; color:gray; padding:5px;">Select State...</p>';
+    if (!selStates.length) {
+        container.innerHTML = '<p style="font-size:11px; color:gray; padding:5px;">Select State first...</p>';
     } else {
-        const districts = [...new Set(allData.filter(d => selectedStates.includes(d.state)).map(d => d.dist))].sort();
+        const districts = [...new Set(allData.filter(d => selStates.includes(d.state)).map(d => d.dist))].sort();
         container.innerHTML = districts.map(d => `
             <div class="multi-select-item">
                 <input type="checkbox" class="dist-check" value="${d}" onchange="applyFilters()"> ${d}
@@ -140,62 +118,44 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    let groupedMap = {};
+    // Final Grouping to ensure unique entries in Chart
+    let grouped = {};
     filtered.forEach(item => {
-        let key = item.dist;
-        if (!groupedMap[key]) {
-            groupedMap[key] = { dist: item.dist, state: item.state, val: 0 };
-        }
-        groupedMap[key].val += item.val; 
+        let key = item.dist + item.state;
+        if(!grouped[key]) grouped[key] = { ...item };
+        else grouped[key].val += item.val;
     });
 
-    let finalData = Object.values(groupedMap).sort((a, b) => b.val - a.val);
-    updateCharts(finalData, filtered);
+    let finalData = Object.values(grouped).sort((a, b) => b.val - a.val);
+    updateCharts(finalData);
     displayCards(finalData);
 }
 
-function updateCharts(groupedData, rawFiltered) {
-    const top10 = groupedData.slice(0, 10);
-    charts.main.data.labels = top10.map(d => d.dist);
-    charts.main.data.datasets[0].data = top10.map(d => d.val);
+function updateCharts(data) {
+    const top = data.slice(0, 10);
+    charts.main.data.labels = top.map(d => d.dist);
+    charts.main.data.datasets[0].data = top.map(d => d.val);
     charts.main.update();
 
-    charts.comparison.data.labels = top10.slice(0, 5).map(d => d.dist);
-    charts.comparison.data.datasets[0].data = top10.slice(0, 5).map(d => d.val);
+    charts.comparison.data.labels = top.slice(0, 5).map(d => d.dist);
+    charts.comparison.data.datasets[0].data = top.slice(0, 5).map(d => d.val);
     charts.comparison.update();
 
-    let trendValues = rawFiltered.slice(0, 20).map(d => d.val);
-    charts.top1.data.labels = trendValues.map((_, i) => i);
-    charts.top1.data.datasets[0].data = trendValues;
-    charts.top1.update();
-
-    charts.top2.data.labels = trendValues.map((_, i) => i);
-    charts.top2.data.datasets[0].data = trendValues.map(v => v * 0.8);
-    charts.top2.update();
-
-    document.getElementById('totalCountDisplay').innerText = `${groupedData.length} Clean Records`;
+    document.getElementById('totalCountDisplay').innerText = `${data.length} Places Found`;
 }
 
 function populateDateDropdown(dates) {
-    const select = document.getElementById('dateSelect');
-    select.innerHTML = '<option value="">All Dates</option>' + dates.sort().map(d => `<option value="${d}">${d}</option>`).join('');
+    document.getElementById('dateSelect').innerHTML = '<option value="">All Dates</option>' + 
+        dates.sort().map(d => `<option value="${d}">${d}</option>`).join('');
 }
 
 function displayCards(data) {
-    const container = document.getElementById("resultContainer");
-    container.innerHTML = data.slice(0, 50).map(d => `
+    document.getElementById("resultContainer").innerHTML = data.slice(0, 50).map(d => `
         <div class="status-card">
             <div><strong>${d.dist}</strong> <br> <small>${d.state}</small></div>
             <div style="color:#2563eb; font-weight:bold">${d.val.toLocaleString()}</div>
         </div>
     `).join('');
-}
-
-function filterData() {
-    const q = document.getElementById("searchInput").value.toLowerCase();
-    document.querySelectorAll('.status-card').forEach(card => {
-        card.style.display = card.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
-    });
 }
 
 window.onload = initDashboard;
