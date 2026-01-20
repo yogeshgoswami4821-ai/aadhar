@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aadhaar Societal Trends Analytics</title>
+    <title>Aadhaar Analytics Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -16,7 +16,6 @@
     </header>
 
     <main class="dashboard-grid">
-        
         <section class="card small-chart">
             <h3>Total Enrolments</h3>
             <div class="chart-container">
@@ -46,17 +45,23 @@
             <p id="totalCountDisplay">Upload data to start</p>
         </section>
 
-        <section class="card upload-section">
+        <section class="card">
             <h3>Step 1: Data Ingestion</h3>
-            <div class="upload-controls">
-                <input type="file" id="fileInput" accept=".csv" multiple>
-                <button onclick="uploadCSV()" id="uploadBtn">Analyze Combined Data</button>
-            </div>
+            <input type="file" id="fileInput" accept=".csv" multiple>
+            <button onclick="uploadCSV()" id="uploadBtn">Analyze Combined Data</button>
         </section>
 
         <section class="card search-section">
-            <h3>Step 2: Monitoring</h3>
-            <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search Place...">
+            <h3>Step 2: Monitoring & Comparison</h3>
+            <div class="filter-controls">
+                <select id="stateSelect" onchange="updateDistrictDropdown()">
+                    <option value="">Select State</option>
+                </select>
+                <select id="distSelect" onchange="filterBySelection()">
+                    <option value="">Select District</option>
+                </select>
+                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Or Search Place...">
+            </div>
             <div id="resultContainer" class="result-grid">
                 <div class="placeholder-text">Waiting for data...</div>
             </div>
@@ -68,7 +73,6 @@
                 <canvas id="enrolmentChart"></canvas>
             </div>
         </section>
-        
     </main>
 
     <script src="script.js"></script>
