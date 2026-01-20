@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aadhaar Hierarchy Analytics | Social Trends</title>
+    <title>Aadhaar Hierarchy Analytics</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -11,30 +11,23 @@
 </head>
 <body>
     <header>
-        <div class="header-content">
-            <div class="design-icons">💎 Xd Ps</div>
-            <h1>Aadhaar Societal Trends Analytics</h1>
-            <p>Problem Identification via Hierarchical Status Coding (State > District > Tehsil)</p>
-        </div>
+        <div class="design-icons">💎 Xd Ps</div>
+        <h1>Aadhaar Societal Trends Analytics</h1>
     </header>
 
     <main class="dashboard-grid">
         <section class="card small-chart">
             <h3>Total Enrolments</h3>
-            <div class="chart-container">
-                <canvas id="topChart1"></canvas>
-            </div>
+            <div class="chart-container"><canvas id="topChart1"></canvas></div>
         </section>
-
+        
         <section class="card small-chart">
             <h3>Updates</h3>
-            <div class="chart-container">
-                <canvas id="topChart2"></canvas>
-            </div>
+            <div class="chart-container"><canvas id="topChart2"></canvas></div>
         </section>
 
         <section class="card map-box">
-            <div class="map-placeholder">
+            <div class="map-container">
                 <img src="https://simplemaps.com/static/svg/in/in.svg" alt="India Map">
             </div>
         </section>
@@ -44,39 +37,30 @@
             <div class="circle-wrap">
                 <div class="percent" id="mainPercent">0%</div>
             </div>
-            <p id="totalCountDisplay">Upload data to start</p>
+            <p id="totalCountDisplay">Upload CSV to start</p>
         </section>
 
-        <section class="card upload-section">
+        <section class="card upload-box">
             <h3>Step 1: Data Ingestion</h3>
-            <div class="input-group">
-                <input type="file" id="fileInput" accept=".csv" multiple>
-                <button onclick="uploadCSV()" id="uploadBtn">Analyze Combined Data</button>
-            </div>
-            <small>Tip: Select multiple files using Ctrl or Shift.</small>
+            <input type="file" id="fileInput" accept=".csv" multiple>
+            <button onclick="uploadCSV()" id="uploadBtn">Analyze Data</button>
         </section>
 
         <section class="card search-section">
-            <h3>Step 2: Monitoring</h3>
-            <div class="search-box">
-                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search by Place or Status...">
-            </div>
+            <h3>Step 2: Real-time Monitoring</h3>
+            <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search Place...">
             <div id="resultContainer" class="result-grid">
-                <div class="placeholder-text">Waiting for CSV upload...</div>
+                <div class="placeholder-text">Waiting for data...</div>
             </div>
         </section>
 
-        <section class="card wide-chart" id="chartSection">
+        <section class="card wide-chart">
             <h3>Hierarchical Trends (Top Regions)</h3>
             <div class="chart-container">
                 <canvas id="enrolmentChart"></canvas>
             </div>
         </section>
     </main>
-
-    <footer>
-        <p>&copy; 2026 Aadhaar Analytics Framework | National Hackathon Submission</p>
-    </footer>
 
     <script src="script.js"></script>
 </body>
