@@ -1,7 +1,6 @@
 let allData = [];
 let charts = {};
 
-// 1. Dashboard Initialization
 function initDashboard() {
     const config = (type, color) => ({
         type: type,
@@ -15,11 +14,9 @@ function initDashboard() {
     charts.comparison = new Chart(document.getElementById('comparisonChart'), config('doughnut', ['#3b82f6','#8b5cf6','#ef4444','#f59e0b','#10b981']));
 }
 
-// 2. CSV Upload & Multi-file handling
 async function uploadCSV() {
     const files = document.getElementById("fileInput").files;
-    if (!files.length) return alert("Bhai, pehle CSV file toh select karo!");
-    
+    if (!files.length) return alert("Bhai, CSV file select karo!");
     let rows = [];
     for (let f of files) {
         const text = await f.text();
@@ -29,7 +26,16 @@ async function uploadCSV() {
     parseData(rows);
 }
 
-// 3. Data Parsing (Cleaning State Names & Dates)
+// Faltu naam aur duplicates hatane wala logic
+function cleanName(name) {
+    if (!name) return "";
+    // 1. Sabhi extra spaces hatana aur Proper Case banana (e.g., WEST BENGAL -> West Bengal)
+    return name.trim()
+               .toLowerCase()
+               .replace(/\b\w/g, l => l.toUpperCase())
+               .replace("Bangal", "Bengal"); // Common spelling mistake fix
+}
+
 function parseData(rows) {
     allData = [];
     let dates = new Set();
@@ -37,16 +43,15 @@ function parseData(rows) {
     rows.forEach((row, i) => {
         if (i === 0 || row.length < 3) return;
 
-        // Date detect karne ka logic
         let dateIdx = row.findIndex(v => /[\d\-\/]/.test(v) && v.length > 5);
         if (dateIdx === -1) return;
 
         let dateVal = row[dateIdx].trim();
-        let stateVal = row[dateIdx + 1] ? row[dateIdx + 1].trim() : "";
-        let distVal = row[dateIdx + 2] ? row[dateIdx + 2].trim() : "";
+        let stateVal = cleanName(row[dateIdx + 1]);
+        let distVal = cleanName(row[dateIdx + 2]);
         
-        // Faltu naam hatane ke liye check (Sirf text allow)
-        if (!/^[a-zA-Z\s.]+$/.test(stateVal) || stateVal.length < 3) return;
+        // Validation: Agar naam mein numbers hain ya bohot chota hai toh hata do
+        if (/\d/.test(stateVal) || stateVal.length < 3) return;
 
         let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
         let enrollment = Math.max(...nums);
@@ -62,10 +67,12 @@ function parseData(rows) {
     applyFilters();
 }
 
-// 4. Populate State Checkboxes
 function populateStateList() {
+    // Unique states filter
     const states = [...new Set(allData.map(d => d.state))].sort();
     const container = document.getElementById('stateList');
+    
+    // Sirf valid states dikhana
     container.innerHTML = states.map(s => `
         <div class="multi-select-item">
             <input type="checkbox" class="state-check" value="${s}" onchange="updateDistrictList()"> ${s}
@@ -73,13 +80,12 @@ function populateStateList() {
     `).join('');
 }
 
-// 5. Update District List (Hierarchical)
 function updateDistrictList() {
     const selectedStates = Array.from(document.querySelectorAll('.state-check:checked')).map(i => i.value);
     const container = document.getElementById('distList');
     
     if (selectedStates.length === 0) {
-        container.innerHTML = '<p style="font-size:10px; color:gray; padding:5px;">Pehle State select karein...</p>';
+        container.innerHTML = '<p style="font-size:10px; color:gray; padding:5px;">State select karein...</p>';
     } else {
         const districts = [...new Set(allData.filter(d => selectedStates.includes(d.state)).map(d => d.dist))].sort();
         container.innerHTML = districts.map(d => `
@@ -91,7 +97,6 @@ function updateDistrictList() {
     applyFilters();
 }
 
-// 6. Final Filter & Aggregation (Bhopal Duplicate Fix)
 function applyFilters() {
     const selDate = document.getElementById('dateSelect').value;
     const selStates = Array.from(document.querySelectorAll('.state-check:checked')).map(i => i.value);
@@ -102,12 +107,12 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    // Grouping Logic: Bhopal ki multiple entries ko ek saath jodna
+    // Bhopal Duplicate Fix: Summing values by District
     let groupedMap = {};
     filtered.forEach(item => {
         let key = item.dist;
         if (!groupedMap[key]) {
-            groupedMap[key] = { dist: item.dist, state: item.state, val: 0, date: item.date };
+            groupedMap[key] = { dist: item.dist, state: item.state, val: 0 };
         }
         groupedMap[key].val += item.val; 
     });
@@ -117,36 +122,30 @@ function applyFilters() {
     displayCards(finalData);
 }
 
-// 7. Update Charts
 function updateCharts(groupedData, rawFiltered) {
     const top10 = groupedData.slice(0, 10);
     
-    // Main Bar Chart
     charts.main.data.labels = top10.map(d => d.dist);
-    charts.main.data.datasets[0].label = 'Total Enrolments (Grouped)';
     charts.main.data.datasets[0].data = top10.map(d => d.val);
     charts.main.update();
 
-    // Doughnut Comparison
     charts.comparison.data.labels = top10.slice(0, 5).map(d => d.dist);
     charts.comparison.data.datasets[0].data = top10.slice(0, 5).map(d => d.val);
     charts.comparison.update();
 
-    // Top Trend Charts (Using raw filtered data for wavy lines)
     let trendValues = rawFiltered.slice(0, 15).map(d => d.val);
     charts.top1.data.labels = trendValues.map((_, i) => i);
     charts.top1.data.datasets[0].data = trendValues;
     charts.top1.update();
 
     charts.top2.data.labels = trendValues.map((_, i) => i);
-    charts.top2.data.datasets[0].data = trendValues.map(v => v * 0.8);
+    charts.top2.data.datasets[0].data = trendValues.map(v => v * 0.85);
     charts.top2.update();
 
     document.getElementById('mainPercent').innerText = groupedData.length > 0 ? "100%" : "0%";
-    document.getElementById('totalCountDisplay').innerText = `${groupedData.length} Unique Districts Found`;
+    document.getElementById('totalCountDisplay').innerText = `${groupedData.length} Regions Cleaned & Analyzed`;
 }
 
-// 8. Helper Functions
 function populateDateDropdown(dates) {
     const select = document.getElementById('dateSelect');
     select.innerHTML = '<option value="">All Dates</option>' + dates.sort().map(d => `<option value="${d}">${d}</option>`).join('');
@@ -164,10 +163,8 @@ function displayCards(data) {
 
 function filterData() {
     const q = document.getElementById("searchInput").value.toLowerCase();
-    const cards = document.querySelectorAll('.status-card');
-    cards.forEach(card => {
-        const text = card.innerText.toLowerCase();
-        card.style.display = text.includes(q) ? 'flex' : 'none';
+    document.querySelectorAll('.status-card').forEach(card => {
+        card.style.display = card.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
     });
 }
 
