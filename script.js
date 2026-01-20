@@ -1,17 +1,20 @@
 let allData = [];
 
-async function uploadCSV() {
+function uploadCSV() {
     const fileInput = document.getElementById("fileInput");
     const container = document.getElementById("resultContainer");
     const btn = document.getElementById("uploadBtn");
 
-    if (!fileInput.files[0]) return alert("Please select a file!");
+    if (!fileInput.files[0]) {
+        alert("Please select a file first!");
+        return;
+    }
 
-    btn.innerText = "⚡ Analyzing Locally...";
+    btn.innerText = "⚡ Processing...";
     btn.disabled = true;
-    container.innerHTML = "🔄 Reading file... No server needed!";
+    container.innerHTML = "🔄 Analyzing data locally (No server delay)...";
 
-    // Browser mein hi file read ho rahi hai
+    // PapaParse browser processing starts
     Papa.parse(fileInput.files[0], {
         header: true,
         skipEmptyLines: true,
@@ -21,7 +24,7 @@ async function uploadCSV() {
             btn.disabled = false;
         },
         error: function(err) {
-            container.innerHTML = `<p style="color:red;">Error reading file: ${err.message}</p>`;
+            container.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
             btn.disabled = false;
         }
     });
@@ -30,8 +33,13 @@ async function uploadCSV() {
 function processData(data) {
     const container = document.getElementById("resultContainer");
     
-    // Column Names check karein (Case-insensitive)
+    // Header detection logic
     const firstRow = data[0];
+    if (!firstRow) {
+        container.innerHTML = "Empty File!";
+        return;
+    }
+
     const getCol = (name) => Object.keys(firstRow).find(k => k.toLowerCase().trim() === name.toLowerCase());
 
     const stateCol = getCol("State");
@@ -39,14 +47,17 @@ function processData(data) {
     const tehsilCol = getCol("Tehsil");
     const enrolCol = getCol("Enrolment") || getCol("Enrollment");
 
+    // Missing column check
     if (!stateCol || !distCol || !tehsilCol || !enrolCol) {
-        container.innerHTML = `<div style="color:red; border:1px solid red; padding:10px;">
-            ⚠️ Missing Columns: Need State, District, Tehsil, Enrolment
-        </div>`;
+        container.innerHTML = `
+            <div style="color:red; border:2px solid red; padding:15px; border-radius:8px;">
+                <h3>⚠️ SYSTEM WARNING</h3>
+                <p>Missing Columns. Check if CSV has: State, District, Tehsil, Enrolment</p>
+            </div>`;
         return;
     }
 
-    // Processing logic
+    // Process hierarchy
     let summary = {};
     data.forEach(row => {
         let key = `${row[stateCol]} > ${row[distCol]} > ${row[tehsilCol]}`;
@@ -57,12 +68,13 @@ function processData(data) {
     const entries = Object.entries(summary);
     const avg = entries.reduce((a, b) => a + b[1], 0) / entries.length;
 
-    allData = entries.map(([place, val]) => ({
-        place: place,
-        enrolment: val,
-        code: val < (avg * 0.5) ? "R" : (val < avg ? "Y" : "G"),
-        analysis: val < (avg * 0.5) ? "Critical" : (val < avg ? "Warning" : "Stable")
-    }));
+    allData = entries.map(([place, val]) => {
+        let code = "G";
+        let status = "Stable";
+        if (val < (avg * 0.5)) { code = "R"; status = "Critical"; }
+        else if (val < avg) { code = "Y"; status = "Warning"; }
+        return { place, enrolment: val, code, analysis: status };
+    });
 
     displayCards(allData);
 }
@@ -70,11 +82,30 @@ function processData(data) {
 function displayCards(data) {
     const container = document.getElementById("resultContainer");
     container.innerHTML = "";
-    data.slice(0, 100).forEach(item => {
-        const color = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
+    if (data.length === 0) {
+        container.innerHTML = "No patterns found.";
+        return;
+    }
+
+    data.slice(0, 200).forEach(item => {
+        const colorClass = item.code === "R" ? "red-card" : (item.code === "Y" ? "yellow-card" : "green-card");
         const card = document.createElement("div");
-        card.className = `status-card ${color}`;
-        card.innerHTML = `<h3>${item.place}</h3><p>Enrolment: ${item.enrolment.toLocaleString()}</p><p>Status: ${item.analysis}</p>`;
+        card.className = `status-card ${colorClass}`;
+        card.innerHTML = `
+            <div class="badge">${item.code}</div>
+            <div class="card-info">
+                <h3>${item.place}</h3>
+                <p><strong>Enrolment:</strong> ${item.enrolment.toLocaleString()}</p>
+                <p><strong>Status:</strong> ${item.analysis}</p>
+            </div>`;
         container.appendChild(card);
     });
+}
+
+function filterData() {
+    const query = document.getElementById("searchInput").value.toUpperCase();
+    const filtered = allData.filter(i => 
+        i.place.toUpperCase().includes(query) || i.code === query
+    );
+    displayCards(filtered);
 }
