@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aadhaar Analytics Dashboard</title>
+    <title>Aadhaar Societal Trends Analytics</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -16,33 +16,43 @@
     </header>
 
     <main class="dashboard-grid">
+        
         <section class="card small-chart">
             <h3>Total Enrolments</h3>
-            <div class="chart-container"><canvas id="topChart1"></canvas></div>
+            <div class="chart-container">
+                <canvas id="topChart1"></canvas>
+            </div>
         </section>
 
         <section class="card small-chart">
             <h3>Updates</h3>
-            <div class="chart-container"><canvas id="topChart2"></canvas></div>
+            <div class="chart-container">
+                <canvas id="topChart2"></canvas>
+            </div>
         </section>
 
         <section class="card comparison-chart-box">
             <h3>Multi-Region Comparison</h3>
-            <div class="chart-container"><canvas id="comparisonChart"></canvas></div>
+            <div class="chart-container">
+                <canvas id="comparisonChart"></canvas>
+            </div>
         </section>
 
         <section class="card donut-box">
             <h3>Analysis Status</h3>
-            <div class="circle-wrap"><div class="percent" id="mainPercent">0%</div></div>
-            <p id="totalCountDisplay">Upload data to start</p>
+            <div class="circle-wrap">
+                <div class="percent" id="mainPercent">0%</div>
+            </div>
+            <p id="totalCountDisplay" style="text-align:center; font-size:12px;">Waiting for data...</p>
         </section>
 
         <section class="card">
-            <h3>Step 1: Data Ingestion & Date</h3>
+            <h3>Step 1: Data Ingestion</h3>
             <div class="filter-controls">
                 <input type="file" id="fileInput" accept=".csv" multiple>
                 <button onclick="uploadCSV()">Analyze Data</button>
-                <label style="margin-top:10px">Filter by Date:</label>
+                
+                <label>Filter by Date:</label>
                 <select id="dateSelect" onchange="applyFilters()">
                     <option value="">All Dates</option>
                 </select>
@@ -50,23 +60,28 @@
         </section>
 
         <section class="card search-section">
-            <h3>Step 2: Compare States & Districts</h3>
+            <h3>Step 2: Comparison Filters</h3>
             <div class="filter-controls">
-                <label>1. Select States:</label>
+                <label>Select States:</label>
                 <div id="stateList" class="multi-select-box"></div>
                 
-                <label>2. Select Districts (From Selected States):</label>
+                <label>Select Districts:</label>
                 <div id="distList" class="multi-select-box"></div>
 
                 <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search by name...">
             </div>
-            <div id="resultContainer" class="result-grid"></div>
+            
+            <div id="resultContainer" class="result-grid">
+                </div>
         </section>
 
         <section class="card wide-chart">
             <h3>Regional Activity Trends</h3>
-            <div class="chart-container"><canvas id="enrolmentChart"></canvas></div>
+            <div class="chart-container">
+                <canvas id="enrolmentChart"></canvas>
+            </div>
         </section>
+        
     </main>
 
     <script src="script.js"></script>
