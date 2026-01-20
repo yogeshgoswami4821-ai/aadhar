@@ -25,12 +25,12 @@
                 <input type="file" id="fileInput" accept=".csv">
                 <button onclick="uploadCSV()" id="uploadBtn">Analyze Hierarchy</button>
             </div>
-            <small>Upload Aadhaar enrolment CSV (State, District, Tehsil, Enrolment)</small>
+            <small>Format: State, District, Tehsil, Enrolment</small>
         </section>
 
-        <section class="chart-section card" id="chartSection" style="display:none; margin-bottom: 20px;">
-            <h2>Visual Analytics (Top 10 Regions)</h2>
-            <div style="height: 400px;">
+        <section class="chart-section card" id="chartSection" style="display:none; margin-top: 20px;">
+            <h2>Visual Analytics (Top Regions)</h2>
+            <div style="position: relative; height:350px; width:100%;">
                 <canvas id="enrolmentChart"></canvas>
             </div>
         </section>
@@ -43,7 +43,7 @@
         </section>
 
         <section id="resultContainer" class="result-grid">
-            <div class="placeholder-text">Upload a file to see insights.</div>
+            <div class="placeholder-text">Upload a file to see hierarchical insights.</div>
         </section>
     </main>
 
