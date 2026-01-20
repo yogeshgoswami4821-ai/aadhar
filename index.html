@@ -6,7 +6,6 @@
     <title>Aadhaar Hierarchy Analytics | Social Trends</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -20,30 +19,30 @@
 
     <main class="container">
         <section class="upload-section card">
-            <h2>Step 1: Data Ingestion</h2>
+            <h2>Step 1: Multi-Data Ingestion</h2>
             <div class="input-group">
-                <input type="file" id="fileInput" accept=".csv">
-                <button onclick="uploadCSV()" id="uploadBtn">Analyze Hierarchy</button>
+                <input type="file" id="fileInput" accept=".csv" multiple>
+                <button onclick="uploadCSV()" id="uploadBtn">Analyze Combined Hierarchy</button>
             </div>
-            <small>Format: State, District, Tehsil, Enrolment</small>
+            <small>Tip: You can select up to 3 or more CSV files together using Ctrl/Shift.</small>
         </section>
 
         <section class="chart-section card" id="chartSection" style="display:none; margin-top: 20px;">
-            <h2>Visual Analytics (Top Regions)</h2>
+            <h2>Combined Visual Analytics</h2>
             <div style="position: relative; height:350px; width:100%;">
                 <canvas id="enrolmentChart"></canvas>
             </div>
         </section>
 
         <section class="search-section card">
-            <h2>Step 2: Real-time Monitoring</h2>
+            <h2>Step 2: Monitoring</h2>
             <div class="search-box">
                 <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search by Place or Status (R, G, Y)...">
             </div>
         </section>
 
         <section id="resultContainer" class="result-grid">
-            <div class="placeholder-text">Upload a file to see hierarchical insights.</div>
+            <div class="placeholder-text">Upload files to see combined insights.</div>
         </section>
     </main>
 
