@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aadhaar Analytics Pro</title>
+    <title>Aadhaar Analytics Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -17,12 +17,12 @@
 
     <main class="dashboard-grid">
         <section class="card small-chart">
-            <h3>Total Enrolments (Trend)</h3>
+            <h3>Total Enrolments</h3>
             <div class="chart-container"><canvas id="topChart1"></canvas></div>
         </section>
 
         <section class="card small-chart">
-            <h3>Updates (Trend)</h3>
+            <h3>Updates</h3>
             <div class="chart-container"><canvas id="topChart2"></canvas></div>
         </section>
 
@@ -38,29 +38,33 @@
         </section>
 
         <section class="card">
-            <h3>Step 1: Upload CSV</h3>
+            <h3>Step 1: Data Ingestion & Date</h3>
             <div class="filter-controls">
                 <input type="file" id="fileInput" accept=".csv" multiple>
                 <button onclick="uploadCSV()">Analyze Data</button>
+                <label style="margin-top:10px">Filter by Date:</label>
+                <select id="dateSelect" onchange="applyFilters()">
+                    <option value="">All Dates</option>
+                </select>
             </div>
         </section>
 
         <section class="card search-section">
             <h3>Step 2: Compare States & Districts</h3>
             <div class="filter-controls">
-                <label>Select Multiple States:</label>
+                <label>1. Select States:</label>
                 <div id="stateList" class="multi-select-box"></div>
                 
-                <label>Select Districts:</label>
+                <label>2. Select Districts (From Selected States):</label>
                 <div id="distList" class="multi-select-box"></div>
 
-                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search specific place...">
+                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search by name...">
             </div>
             <div id="resultContainer" class="result-grid"></div>
         </section>
 
         <section class="card wide-chart">
-            <h3>Top 10 High-Activity Regions</h3>
+            <h3>Regional Activity Trends</h3>
             <div class="chart-container"><canvas id="enrolmentChart"></canvas></div>
         </section>
     </main>
