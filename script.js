@@ -13,33 +13,34 @@ function initDashboard() {
     charts.top2 = new Chart(document.getElementById('topChart2'), config('line', '#8b5cf6'));
 }
 
-// YAHAN HAI MAIN ILAJ: Sirf asli States allow honge
+// --- FIXED CLEANING LOGIC (AS PER YOUR SCREENSHOTS) ---
 function cleanStateName(name) {
     if (!name) return null;
 
+    // Invisible junk aur extra space hatana
     let clean = name.toString().toUpperCase().replace(/[^\x20-\x7E]/g, '').trim();
 
-    // 1. Dadra aur Daman ki sari nautanki khatam - Sabko ek karo
+    // 1. DADRA & DAMAN MERGE (Zabardasti ek naam)
     if (clean.includes("DADRA") || clean.includes("DAMAN") || clean.includes("NAGAR HAVELI")) {
         return "Dadra & Nagar Haveli & Daman & Diu";
     }
 
-    // 2. West Bengal ke saare galat naam ek karo
+    // 2. WEST BENGAL MERGE (Sari galat spelling fix)
     if (clean.includes("WEST") && (clean.includes("BENGAL") || clean.includes("BANGAL") || clean.includes("BENGLI"))) {
         return "West Bengal";
     }
 
-    // 3. Andaman & Jammu variations fix
+    // 3. ANDAMAN, JAMMU, PUDUCHERRY MERGE
     if (clean.includes("ANDAMAN")) return "Andaman & Nicobar Islands";
     if (clean.includes("JAMMU")) return "Jammu & Kashmir";
     if (clean.includes("PONDICHERRY") || clean.includes("PUDUCHERRY")) return "Puducherry";
     if (clean.includes("CHHATTISGARH")) return "Chhattisgarh";
 
-    // 4. BLOCKLIST: Darbhanga aur faltu kachra hatao
-    const blockList = ["DARBHANGA", "STEP", "MONITORING", "TOTAL", "UNKNOWN", "UNDEFINED", "SELECT", "PLACE"];
+    // 4. BLOCKLIST (Jo SS mein faltu dikh raha tha wo sab block)
+    const blockList = ["DARBHANGA", "STEP", "MONITORING", "TOTAL", "UNKNOWN", "UNDEFINED", "SELECT", "PLACE", "AGE_", "100000"];
     if (blockList.some(b => clean.includes(b)) || clean.length < 4) return null;
 
-    // Proper formatting (e.g., Goa, Maharashtra)
+    // Proper formatting (Maharashtra, Goa, etc.)
     return clean.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 }
 
@@ -67,9 +68,11 @@ function parseData(rows) {
 
         let dateVal = row[dateIdx].trim();
         let stateVal = cleanStateName(row[dateIdx + 1]);
-        let distVal = row[dateIdx + 2] ? row[dateIdx + 2].toString().trim().toLowerCase().replace(/\b\w/g, l => l.toUpperCase()) : "";
+        let distRaw = row[dateIdx + 2] ? row[dateIdx + 2].toString().trim() : "";
+        let distVal = distRaw.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 
-        if (stateVal) {
+        // District list mein number na aaye uska check
+        if (stateVal && distVal && isNaN(distVal)) {
             let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
             allData.push({ date: dateVal, state: stateVal, dist: distVal, val: Math.max(...nums) });
             dates.add(dateVal);
@@ -82,7 +85,7 @@ function parseData(rows) {
 }
 
 function populateStateList() {
-    // Unique Set taaki koi bhi state do baar na aaye
+    // Unique Set ensure karta hai ki 'West Bengal' ek hi baar dikhe
     const states = [...new Set(allData.map(d => d.state))].sort();
     document.getElementById('stateList').innerHTML = states.map(s => `
         <div class="multi-select-item">
@@ -118,7 +121,7 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    // Final Grouping to ensure unique entries in Chart
+    // Grouping logic Bhopal fix ke liye (Multiple lines merge ho jayengi)
     let grouped = {};
     filtered.forEach(item => {
         let key = item.dist + item.state;
@@ -141,7 +144,7 @@ function updateCharts(data) {
     charts.comparison.data.datasets[0].data = top.slice(0, 5).map(d => d.val);
     charts.comparison.update();
 
-    document.getElementById('totalCountDisplay').innerText = `${data.length} Places Found`;
+    document.getElementById('totalCountDisplay').innerText = `${data.length} Valid Regions`;
 }
 
 function populateDateDropdown(dates) {
