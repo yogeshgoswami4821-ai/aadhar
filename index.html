@@ -6,52 +6,58 @@
     <title>Aadhaar Hierarchy Analytics | Social Trends</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
         <div class="header-content">
+            <div class="design-icons">💎 Xd Ps</div>
             <h1>Aadhaar Societal Trends Analytics</h1>
-            <p>Problem Identification via Hierarchical Status Coding (State > District > Tehsil)</p>
         </div>
     </header>
 
-    <main class="container">
-        <section class="upload-section card">
-            <h2>Step 1: Data Ingestion</h2>
-            <div class="input-group">
-                <input type="file" id="fileInput" accept=".csv" multiple>
-                <button onclick="uploadCSV()" id="uploadBtn">Analyze Combined Data</button>
-            </div>
-            <small>Tip: Select multiple files using Ctrl or Shift key.</small>
+    <main class="dashboard-grid">
+        <section class="card small-chart">
+            <h3>Total Enrolments</h3>
+            <canvas id="topChart1"></canvas>
+        </section>
+        
+        <section class="card small-chart">
+            <h3>Updates</h3>
+            <canvas id="topChart2"></canvas>
         </section>
 
-        <section class="chart-section card" id="chartSection" style="display:none; margin-top: 20px;">
-            <h2>Combined Visual Trends</h2>
-            <div style="position: relative; height:300px; width:100%;">
-                <canvas id="enrolmentChart"></canvas>
-            </div>
-        </section>
-
-        <section class="search-section card">
-            <h2>Step 2: Real-time Monitoring</h2>
-            <div class="search-box">
-                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search by Place or Status (R, G, Y)...">
+        <section class="card map-section">
+            <div class="map-placeholder">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/India_map.png" alt="India Map" style="height: 100%; opacity: 0.7;">
             </div>
         </section>
 
-        <section id="resultContainer" class="result-grid">
-            <div class="placeholder-text">
-                Upload files to see hierarchical insights.
+        <section class="card donut-section">
+            <div class="percentage-circle">65%</div>
+            <p>18,600 Enrolments</p>
+        </section>
+
+        <section class="card upload-box">
+            <h2>Data Ingestion</h2>
+            <input type="file" id="fileInput" accept=".csv" multiple>
+            <button onclick="uploadCSV()" id="uploadBtn">Analyze Data</button>
+        </section>
+
+        <section class="card search-section">
+            <h3>Real-time Monitoring</h3>
+            <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search Place or Status...">
+            <div id="resultContainer" class="result-list">
+                <div class="placeholder-text">Upload files to see insights.</div>
             </div>
+        </section>
+
+        <section class="card wide-chart">
+            <h3>Monthly Trends vs Updates</h3>
+            <canvas id="enrolmentChart"></canvas>
         </section>
     </main>
-
-    <footer>
-        <p>&copy; 2026 Aadhaar Analytics Framework | National Hackathon Submission</p>
-    </footer>
 
     <script src="script.js"></script>
 </body>
