@@ -36,20 +36,16 @@ function processUniversalData(rows) {
     let summary = {};
     let grandTotal = 0;
 
-    // Pehli row (headers) ko skip karke data nikalte hain
     for (let i = 1; i < rows.length; i++) {
         let row = rows[i];
         if (row.length < 2) continue;
 
-        // Auto-Detect Logic:
-        // 1. Jo text hai wo State/District hoga
-        // 2. Jo bada number hai wo Enrolment hoga
         let strings = row.filter(val => isNaN(val.toString().replace(/,/g, '')));
         let numbers = row.map(val => parseInt(val.toString().replace(/[^0-9]/g, '')) || 0);
         
         let state = strings[0] || "Unknown";
         let dist = strings[1] || "Unknown";
-        let enrolment = Math.max(...numbers); // Row ka sabse bada number uthao
+        let enrolment = Math.max(...numbers);
 
         if (enrolment > 0) {
             let label = `${state.trim()} > ${dist.trim()}`;
@@ -79,8 +75,12 @@ function updateUI(total) {
     );
     charts.main.update();
     
+    displayCards(allData);
+}
+
+function displayCards(data) {
     const container = document.getElementById("resultContainer");
-    container.innerHTML = allData.slice(0, 50).map(item => `
+    container.innerHTML = data.slice(0, 50).map(item => `
         <div class="status-card ${item.code === 'R' ? 'red-card' : item.code === 'Y' ? 'yellow-card' : 'green-card'}">
             <div style="display:flex; flex-direction:column">
                 <span style="font-weight:600">${item.place}</span>
@@ -89,6 +89,12 @@ function updateUI(total) {
             <strong>${item.enrolment.toLocaleString()}</strong>
         </div>
     `).join('');
+}
+
+function filterData() {
+    const q = document.getElementById("searchInput").value.toLowerCase();
+    const filtered = allData.filter(d => d.place.toLowerCase().includes(q));
+    displayCards(filtered);
 }
 
 window.onload = initDashboard;
