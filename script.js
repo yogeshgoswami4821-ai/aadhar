@@ -24,11 +24,11 @@ function initDashboard() {
 
 async function uploadCSV() {
     const fileInput = document.getElementById("fileInput");
-    if (fileInput.files.length === 0) return alert("Please select CSV files!");
+    if (fileInput.files.length === 0) return alert("Bhai, pehle CSV file toh select kar lo!");
 
     const btn = document.getElementById("uploadBtn");
-    btn.innerText = "Processing Data...";
-    btn.disabled = true;
+    btn.innerText = "Processing...";
+    btn.style.opacity = "0.7";
     
     let combinedRows = [];
     const files = Array.from(fileInput.files);
@@ -38,6 +38,7 @@ async function uploadCSV() {
             Papa.parse(file, { 
                 header: true, 
                 skipEmptyLines: true, 
+                dynamicTyping: true, // Numbers ko automatic pehchanega
                 complete: (res) => resolve(res.data) 
             });
         });
@@ -48,7 +49,7 @@ async function uploadCSV() {
 
     processData(combinedRows);
     btn.innerText = "⚡ Analyze Combined Data";
-    btn.disabled = false;
+    btn.style.opacity = "1";
 }
 
 function processData(data) {
@@ -57,27 +58,29 @@ function processData(data) {
     let summary = {};
     let grandTotal = 0;
 
-    // Sabse pehle headers ko dhoondte hain (chahe small letter ho ya capital)
-    const headers = Object.keys(data[0]);
-    const stateKey = headers.find(h => h.toLowerCase().trim() === 'state');
-    const distKey = headers.find(h => h.toLowerCase().trim() === 'district');
-    const enrolKey = headers.find(h => ['enrolment', 'enrolments', 'count', 'total'].includes(h.toLowerCase().trim()));
-
-    // Agar columns nahi mile toh error dikhaye
-    if (!stateKey || !distKey || !enrolKey) {
-        alert(`Error: CSV Columns match nahi huye! Humne dhunda: State, District, Enrolment. Aapke CSV mein hai: ${headers.join(', ')}`);
-        return;
-    }
+    // Sabse important step: Headers ko dhoondna
+    const sample = data[0];
+    const keys = Object.keys(sample);
+    
+    // Ye line 'state', 'district' aur 'enrolment' ko kisi bhi spelling mein dhund legi
+    const stateKey = keys.find(k => k.toLowerCase().includes('state'));
+    const distKey = keys.find(k => k.toLowerCase().includes('dist'));
+    const enrolKey = keys.find(k => k.toLowerCase().includes('enrol') || k.toLowerCase().includes('count') || k.toLowerCase().includes('total'));
 
     data.forEach(row => {
-        let state = (row[stateKey] || "").toString().trim();
-        let dist = (row[distKey] || "").toString().trim();
-        let enrolVal = row[enrolKey] || "0";
-        
-        if (state && dist) {
-            let label = `${state} > ${dist}`;
-            // Comma hatana aur number mein convert karna
-            let val = parseInt(enrolVal.toString().replace(/,/g, '')) || 0;
+        let s = row[stateKey] || "Unknown";
+        let d = row[distKey] || "Unknown";
+        let val = row[enrolKey];
+
+        // Agar value string hai (jaise "86,613"), toh comma hatayega
+        if (typeof val === 'string') {
+            val = parseInt(val.replace(/,/g, '')) || 0;
+        } else {
+            val = parseInt(val) || 0;
+        }
+
+        if (s !== "Unknown") {
+            let label = `${s.toString().trim()} > ${d.toString().trim()}`;
             summary[label] = (summary[label] || 0) + val;
             grandTotal += val;
         }
@@ -93,11 +96,13 @@ function processData(data) {
 }
 
 function updateUI(total) {
+    // Total regions text
     document.getElementById('totalCountDisplay').innerText = `${allData.length} Regions Analyzed`;
     
-    // Percentage update (Agar total 0 hai toh 65 default)
+    // Percentage logic (Donut update)
     document.getElementById('mainPercent').innerText = total > 0 ? "100%" : "0%";
     
+    // Update Chart
     const top10 = allData.slice(0, 10);
     charts.main.data.labels = top10.map(d => d.place.split(' > ')[1]);
     charts.main.data.datasets[0].data = top10.map(d => d.enrolment);
@@ -114,10 +119,10 @@ function displayCards(data) {
     container.innerHTML = data.slice(0, 50).map(item => `
         <div class="status-card ${item.code === 'R' ? 'red-card' : item.code === 'Y' ? 'yellow-card' : 'green-card'}">
             <div style="display:flex; flex-direction:column">
-                <span style="font-weight:600; font-size:13px;">${item.place}</span>
+                <span style="font-weight:600">${item.place}</span>
                 <span style="font-size:10px; color:#94a3b8">Status: ${item.code === 'R' ? 'Critical' : (item.code === 'Y' ? 'Attention' : 'Stable')}</span>
             </div>
-            <strong style="font-size:14px;">${item.enrolment.toLocaleString()}</strong>
+            <strong>${item.enrolment.toLocaleString()}</strong>
         </div>
     `).join('');
 }
