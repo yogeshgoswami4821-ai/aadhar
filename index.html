@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aadhaar Analytics Dashboard</title>
+    <title>Aadhaar Analytics Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -16,67 +16,53 @@
     </header>
 
     <main class="dashboard-grid">
-        
         <section class="card small-chart">
-            <h3>Total Enrolments</h3>
-            <div class="chart-container">
-                <canvas id="topChart1"></canvas>
-            </div>
+            <h3>Total Enrolments (Trend)</h3>
+            <div class="chart-container"><canvas id="topChart1"></canvas></div>
         </section>
 
         <section class="card small-chart">
-            <h3>Updates</h3>
-            <div class="chart-container">
-                <canvas id="topChart2"></canvas>
-            </div>
+            <h3>Updates (Trend)</h3>
+            <div class="chart-container"><canvas id="topChart2"></canvas></div>
         </section>
 
         <section class="card comparison-chart-box">
-            <h3>State/District Comparison</h3>
-            <div class="chart-container">
-                <canvas id="comparisonChart"></canvas>
-            </div>
+            <h3>Multi-Region Comparison</h3>
+            <div class="chart-container"><canvas id="comparisonChart"></canvas></div>
         </section>
 
         <section class="card donut-box">
-            <h3>Current Status</h3>
-            <div class="circle-wrap">
-                <div class="percent" id="mainPercent">0%</div>
-            </div>
+            <h3>Analysis Status</h3>
+            <div class="circle-wrap"><div class="percent" id="mainPercent">0%</div></div>
             <p id="totalCountDisplay">Upload data to start</p>
         </section>
 
         <section class="card">
-            <h3>Step 1: Data Ingestion</h3>
+            <h3>Step 1: Upload CSV</h3>
             <div class="filter-controls">
                 <input type="file" id="fileInput" accept=".csv" multiple>
-                <button onclick="uploadCSV()">Analyze Combined Data</button>
+                <button onclick="uploadCSV()">Analyze Data</button>
             </div>
         </section>
 
         <section class="card search-section">
-            <h3>Step 2: Monitoring & Comparison</h3>
+            <h3>Step 2: Compare States & Districts</h3>
             <div class="filter-controls">
-                <select id="stateSelect" onchange="updateDistrictDropdown()">
-                    <option value="">Select State</option>
-                </select>
-                <select id="distSelect" onchange="filterBySelection()">
-                    <option value="">Select District</option>
-                </select>
-                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Or Search Place...">
+                <label>Select Multiple States:</label>
+                <div id="stateList" class="multi-select-box"></div>
+                
+                <label>Select Districts:</label>
+                <div id="distList" class="multi-select-box"></div>
+
+                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search specific place...">
             </div>
-            <div id="resultContainer" class="result-grid">
-                <div class="placeholder-text">Waiting for data...</div>
-            </div>
+            <div id="resultContainer" class="result-grid"></div>
         </section>
 
         <section class="card wide-chart">
-            <h3>Hierarchical Trends (Top 10 Regions)</h3>
-            <div class="chart-container">
-                <canvas id="enrolmentChart"></canvas>
-            </div>
+            <h3>Top 10 High-Activity Regions</h3>
+            <div class="chart-container"><canvas id="enrolmentChart"></canvas></div>
         </section>
-        
     </main>
 
     <script src="script.js"></script>
