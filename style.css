@@ -1,37 +1,25 @@
-/* Base Reset */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Inter', sans-serif; background: #f1f5f9; padding: 20px; color: #334155; }
-
-header { text-align: center; padding: 20px 0; margin-bottom: 10px; }
+header { text-align: center; padding: 20px 0; }
 header h1 { color: #1e3a8a; font-size: 26px; font-weight: 700; }
 
-/* Dashboard Grid Layout */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: minmax(100px, auto);
     gap: 20px;
     max-width: 1400px;
     margin: 0 auto;
 }
 
-/* Common Card Styling */
 .card {
     background: #ffffff; padding: 20px; border-radius: 16px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column;
     border: 1px solid rgba(226, 232, 240, 0.8);
 }
 
-.card h3 { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 0.05em; }
+.card h3 { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 15px; }
 
-/* Comparison Chart Box (Map ki jagah) */
-.comparison-chart-box { 
-    grid-column: span 2; 
-    grid-row: span 2; 
-    min-height: 480px; 
-}
-
-/* Status Circle (Donut) */
+.comparison-chart-box { grid-column: span 2; grid-row: span 2; min-height: 480px; }
 .donut-box { text-align: center; align-items: center; justify-content: center; }
 .circle-wrap {
     width: 110px; height: 110px; border-radius: 50%;
@@ -40,54 +28,24 @@ header h1 { color: #1e3a8a; font-size: 26px; font-weight: 700; }
 }
 .percent { font-size: 22px; font-weight: 700; color: #1e40af; }
 
-/* Grid Spanning & Heights */
 .search-section { grid-column: span 1; grid-row: span 2; }
 .wide-chart { grid-column: span 3; min-height: 320px; }
+.small-chart { height: 180px; }
+.chart-container { flex-grow: 1; position: relative; width: 100%; height: 100%; }
 
-/* Top Charts Trend Lines Fix */
-.small-chart { height: 200px; justify-content: space-between; }
-.chart-container { 
-    flex-grow: 1; 
-    position: relative; 
-    width: 100%; 
-    height: 100%; 
-    max-height: 120px; /* Mini trend line height */
+.filter-controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
+#stateSelect, #distSelect, #searchInput, #fileInput {
+    width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;
 }
 
-/* Wide Chart Container Fix */
-.wide-chart .chart-container {
-    max-height: 250px;
-}
+button { background: #2563eb; color: #ffffff; border: none; padding: 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+button:hover { background: #1d4ed8; }
 
-/* Form Elements */
-#searchInput, #fileInput { 
-    width: 100%; padding: 12px; margin-bottom: 12px; 
-    border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc;
-}
-
-button { 
-    background: #2563eb; color: #ffffff; border: none; padding: 14px; 
-    border-radius: 10px; cursor: pointer; font-weight: 600; width: 100%;
-    transition: 0.2s ease;
-}
-button:hover { background: #1d4ed8; transform: translateY(-1px); }
-
-/* Monitoring List Styling */
-.result-grid { 
-    overflow-y: auto; max-height: 400px; margin-top: 10px; padding-right: 5px;
-}
-
+.result-grid { overflow-y: auto; max-height: 380px; margin-top: 10px; }
 .status-card {
-    padding: 14px; margin-bottom: 10px; border-radius: 12px; 
-    border-left: 6px solid #94a3b8; background: #ffffff; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px; margin-bottom: 10px; border-radius: 12px; border-left: 6px solid #94a3b8;
+    background: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; justify-content: space-between;
 }
-
 .red-card { border-left-color: #ef4444; background: #fff1f2; }
 .yellow-card { border-left-color: #f59e0b; background: #fffbeb; }
 .green-card { border-left-color: #10b981; background: #f0fdf4; }
-
-/* Scrollbar Fix */
-.result-grid::-webkit-scrollbar { width: 5px; }
-.result-grid::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
