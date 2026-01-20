@@ -4,86 +4,196 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aadhaar Societal Trends Analytics</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        :root {
+            --primary-blue: #2563eb;
+            --bg-light: #f8fafc;
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #eef2f6; /* Wahi purana light grey-blue background */
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: 320px 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+        }
+        h2 { color: #1e293b; font-size: 18px; margin-bottom: 20px; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
+        
+        /* Sidebar Controls */
+        .sidebar { display: flex; flex-direction: column; gap: 20px; }
+        .upload-area { border: 2px dashed #cbd5e1; padding: 15px; border-radius: 10px; text-align: center; }
+        button { 
+            background: var(--primary-blue); color: white; border: none; 
+            padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;
+        }
+        select, .multi-select { 
+            width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 5px;
+        }
+        .multi-select { height: 150px; overflow-y: auto; background: #fff; }
+
+        /* Charts & Stats */
+        .chart-box { height: 300px; width: 100%; }
+        .full-width { grid-column: span 2; }
+        
+        .status-card {
+            background: #fff; padding: 15px; border-radius: 12px; margin-bottom: 10px;
+            border-left: 5px solid var(--primary-blue); display: flex; justify-content: space-between;
+        }
+    </style>
 </head>
 <body>
 
-    <header>
-        <h1>Aadhaar Societal Trends Analytics</h1>
-    </header>
+<h1 style="color: #1e293b; margin-bottom: 30px;">Aadhaar Societal Trends Analytics</h1>
 
-    <main class="dashboard-grid">
+<div class="container">
+    <div class="card sidebar">
+        <h2>Data Ingestion</h2>
+        <div class="upload-area">
+            <input type="file" id="fileInput" multiple accept=".csv" style="width: 100%;">
+        </div>
+        <button onclick="uploadCSV()">Analyze Data</button>
+
+        <h2>Filters</h2>
+        <select id="dateSelect" onchange="applyFilters()"><option value="">All Dates</option></select>
         
-        <section class="card small-chart">
-            <h3>Total Enrolments</h3>
-            <div class="chart-container">
-                <canvas id="topChart1"></canvas>
-            </div>
-        </section>
+        <div style="margin-top: 10px;">
+            <label>Select States:</label>
+            <div id="stateList" class="multi-select"></div>
+        </div>
+    </div>
 
-        <section class="card small-chart">
-            <h3>Updates</h3>
-            <div class="chart-container">
-                <canvas id="topChart2"></canvas>
-            </div>
-        </section>
+    <div class="card">
+        <h2>Total Enrolments</h2>
+        <div class="chart-box"><canvas id="enrolmentChart"></canvas></div>
+    </div>
 
-        <section class="card comparison-chart-box">
-            <h3>Multi-Region Comparison</h3>
-            <div class="chart-container">
-                <canvas id="comparisonChart"></canvas>
-            </div>
-        </section>
+    <div class="card">
+        <h2>Updates</h2>
+        <div class="chart-box"><canvas id="updateChart"></canvas></div>
+    </div>
 
-        <section class="card donut-box">
-            <h3>Analysis Status</h3>
-            <div class="circle-wrap">
-                <div class="percent" id="mainPercent">0%</div>
-            </div>
-            <p id="totalCountDisplay" style="text-align:center; font-size:12px;">Waiting for data...</p>
-        </section>
+    <div class="card full-width">
+        <h2>Multi-Region Comparison</h2>
+        <div class="chart-box" style="height: 400px;"><canvas id="comparisonChart"></canvas></div>
+    </div>
 
-        <section class="card">
-            <h3>Step 1: Data Ingestion</h3>
-            <div class="filter-controls">
-                <input type="file" id="fileInput" accept=".csv" multiple>
-                <button onclick="uploadCSV()">Analyze Data</button>
-                
-                <label>Filter by Date:</label>
-                <select id="dateSelect" onchange="applyFilters()">
-                    <option value="">All Dates</option>
-                </select>
-            </div>
-        </section>
+    <div class="card">
+        <h2>Activity Feed</h2>
+        <div id="resultFeed"></div>
+    </div>
+</div>
 
-        <section class="card search-section">
-            <h3>Step 2: Comparison Filters</h3>
-            <div class="filter-controls">
-                <label>Select States:</label>
-                <div id="stateList" class="multi-select-box"></div>
-                
-                <label>Select Districts:</label>
-                <div id="distList" class="multi-select-box"></div>
+<script>
+let allData = [];
+let charts = {};
 
-                <input type="text" id="searchInput" onkeyup="filterData()" placeholder="Search by name...">
-            </div>
-            
-            <div id="resultContainer" class="result-grid">
-                </div>
-        </section>
+function initDashboard() {
+    const commonOptions = { responsive: true, maintainAspectRatio: false };
+    charts.main = new Chart(document.getElementById('enrolmentChart'), {
+        type: 'bar', data: { labels: [], datasets: [{ label: 'Enrolments', data: [], backgroundColor: '#3b82f6' }] }, options: commonOptions
+    });
+    charts.updates = new Chart(document.getElementById('updateChart'), {
+        type: 'line', data: { labels: [], datasets: [{ label: 'Updates', data: [], borderColor: '#10b981', fill: false }] }, options: commonOptions
+    });
+    charts.comparison = new Chart(document.getElementById('comparisonChart'), {
+        type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#3b82f6','#8b5cf6','#ef4444','#f59e0b','#10b981'] }] }, options: commonOptions
+    });
+}
 
-        <section class="card wide-chart">
-            <h3>Regional Activity Trends</h3>
-            <div class="chart-container">
-                <canvas id="enrolmentChart"></canvas>
-            </div>
-        </section>
+async function uploadCSV() {
+    const files = document.getElementById("fileInput").files;
+    if (!files.length) return;
+    let rows = [];
+    for (let f of files) {
+        const text = await f.text();
+        const res = Papa.parse(text.trim(), { header: false, skipEmptyLines: true });
+        rows = rows.concat(res.data);
+    }
+    processData(rows);
+}
+
+function processData(rows) {
+    allData = [];
+    let dates = new Set();
+
+    rows.forEach((row, i) => {
+        if (i === 0 || row.length < 3) return;
+        let dateVal = row.find(v => v && (v.includes('/') || v.includes('-')));
+        let stateRaw = row.find(v => v && isNaN(v) && v.length > 3 && !v.includes('/') && !v.includes('-'));
         
-    </main>
+        // Dadra & Daman Block
+        if (!stateRaw || stateRaw.toUpperCase().includes("DADRA") || stateRaw.toUpperCase().includes("DAMAN")) return;
 
-    <script src="script.js"></script>
+        let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
+        let maxVal = Math.max(...nums);
+
+        allData.push({
+            date: dateVal || "All",
+            state: stateRaw.trim(),
+            dist: row[row.indexOf(stateRaw) + 1] || stateRaw,
+            val: maxVal
+        });
+        if(dateVal) dates.add(dateVal.trim());
+    });
+
+    updateDropdowns([...dates]);
+    applyFilters();
+}
+
+function updateDropdowns(dates) {
+    document.getElementById('dateSelect').innerHTML = '<option value="">All Dates</option>' + 
+        dates.map(d => `<option value="${d}">${d}</option>`).join('');
+    
+    const states = [...new Set(allData.map(d => d.state))].sort();
+    document.getElementById('stateList').innerHTML = states.map(s => `
+        <div style="padding: 5px;"><input type="checkbox" class="state-check" value="${s}" onchange="applyFilters()"> ${s}</div>
+    `).join('');
+}
+
+function applyFilters() {
+    const selDate = document.getElementById('dateSelect').value;
+    const selStates = Array.from(document.querySelectorAll('.state-check:checked')).map(i => i.value);
+
+    let filtered = allData;
+    if (selDate) filtered = filtered.filter(d => d.date === selDate);
+    if (selStates.length) filtered = filtered.filter(d => selStates.includes(d.state));
+
+    let sorted = filtered.sort((a, b) => b.val - a.val).slice(0, 10);
+    
+    charts.main.data.labels = sorted.map(d => d.dist);
+    charts.main.data.datasets[0].data = sorted.map(d => d.val);
+    charts.main.update();
+
+    charts.updates.data.labels = sorted.map(d => d.dist);
+    charts.updates.data.datasets[0].data = sorted.map(d => d.val * 0.8); // Sample update data
+    charts.updates.update();
+
+    charts.comparison.data.labels = sorted.slice(0, 5).map(d => d.dist);
+    charts.comparison.data.datasets[0].data = sorted.slice(0, 5).map(d => d.val);
+    charts.comparison.update();
+
+    document.getElementById("resultFeed").innerHTML = sorted.map(d => `
+        <div class="status-card">
+            <span><strong>${d.dist}</strong> (${d.state})</span>
+            <span style="color: var(--primary-blue); font-weight: bold;">${d.val.toLocaleString()}</span>
+        </div>`).join('');
+}
+
+window.onload = initDashboard;
+</script>
 </body>
 </html>
