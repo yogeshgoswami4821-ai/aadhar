@@ -1,7 +1,6 @@
 let allData = [];
 let charts = {};
 
-// Dashboard initialize karein
 function initDashboard() {
     const miniConfig = (color) => ({
         type: 'line',
@@ -18,19 +17,18 @@ function initDashboard() {
         options: { 
             responsive: true, 
             maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } }
+            scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }
         }
     });
 }
 
-// CSV Upload logic
 async function uploadCSV() {
     const fileInput = document.getElementById("fileInput");
     if (fileInput.files.length === 0) return alert("Please select CSV files!");
 
     const btn = document.getElementById("uploadBtn");
-    btn.innerText = "Merging & Analyzing...";
-    btn.disabled = true; 
+    btn.innerText = "Processing Data...";
+    btn.disabled = true;
     
     let combinedRows = [];
     const files = Array.from(fileInput.files);
@@ -53,29 +51,33 @@ async function uploadCSV() {
     btn.disabled = false;
 }
 
-// Data Processing with fix for "0" values
 function processData(data) {
+    if (!data || data.length === 0) return;
+
     let summary = {};
     let grandTotal = 0;
 
-    if (data.length === 0) return alert("CSV is empty!");
+    // Sabse pehle headers ko dhoondte hain (chahe small letter ho ya capital)
+    const headers = Object.keys(data[0]);
+    const stateKey = headers.find(h => h.toLowerCase().trim() === 'state');
+    const distKey = headers.find(h => h.toLowerCase().trim() === 'district');
+    const enrolKey = headers.find(h => ['enrolment', 'enrolments', 'count', 'total'].includes(h.toLowerCase().trim()));
 
-    // Universal Key Finder: Column names handle karne ke liye
-    const firstRow = data[0];
-    const keys = Object.keys(firstRow);
-    const stateKey = keys.find(k => k.trim().toLowerCase() === 'state');
-    const distKey = keys.find(k => k.trim().toLowerCase() === 'district');
-    const enrolKey = keys.find(k => ['enrolment', 'enrolments', 'count', 'total'].includes(k.trim().toLowerCase()));
+    // Agar columns nahi mile toh error dikhaye
+    if (!stateKey || !distKey || !enrolKey) {
+        alert(`Error: CSV Columns match nahi huye! Humne dhunda: State, District, Enrolment. Aapke CSV mein hai: ${headers.join(', ')}`);
+        return;
+    }
 
     data.forEach(row => {
         let state = (row[stateKey] || "").toString().trim();
         let dist = (row[distKey] || "").toString().trim();
-        let enrolValue = row[enrolKey] || 0;
+        let enrolVal = row[enrolKey] || "0";
         
         if (state && dist) {
             let label = `${state} > ${dist}`;
             // Comma hatana aur number mein convert karna
-            let val = parseInt(enrolValue.toString().replace(/,/g, '')) || 0;
+            let val = parseInt(enrolVal.toString().replace(/,/g, '')) || 0;
             summary[label] = (summary[label] || 0) + val;
             grandTotal += val;
         }
@@ -90,36 +92,25 @@ function processData(data) {
     updateUI(grandTotal);
 }
 
-// Dashboard UI update karein
 function updateUI(total) {
     document.getElementById('totalCountDisplay').innerText = `${allData.length} Regions Analyzed`;
     
-    // Percentage update based on data volume
-    let mockPercent = total > 0 ? Math.min(Math.round((total / (allData.length * 10000)) * 100), 100) : 0;
-    document.getElementById('mainPercent').innerText = (mockPercent || 65) + "%";
+    // Percentage update (Agar total 0 hai toh 65 default)
+    document.getElementById('mainPercent').innerText = total > 0 ? "100%" : "0%";
     
-    // Update Main Bar Chart
     const top10 = allData.slice(0, 10);
-    charts.main.data.labels = top10.map(d => d.place.split(' > ')[1]); // District name only
+    charts.main.data.labels = top10.map(d => d.place.split(' > ')[1]);
     charts.main.data.datasets[0].data = top10.map(d => d.enrolment);
-    
-    // R-Y-G Colors for bars
     charts.main.data.datasets[0].backgroundColor = top10.map(d => 
         d.code === 'R' ? '#ef4444' : (d.code === 'Y' ? '#f59e0b' : '#10b981')
     );
-    
     charts.main.update();
+
     displayCards(allData);
 }
 
-// Monitoring Cards display karein
 function displayCards(data) {
     const container = document.getElementById("resultContainer");
-    if (data.length === 0) {
-        container.innerHTML = '<div class="placeholder-text">No data matches your search.</div>';
-        return;
-    }
-
     container.innerHTML = data.slice(0, 50).map(item => `
         <div class="status-card ${item.code === 'R' ? 'red-card' : item.code === 'Y' ? 'yellow-card' : 'green-card'}">
             <div style="display:flex; flex-direction:column">
@@ -131,7 +122,6 @@ function displayCards(data) {
     `).join('');
 }
 
-// Search functionality
 function filterData() {
     const q = document.getElementById("searchInput").value.toLowerCase();
     const filtered = allData.filter(d => d.place.toLowerCase().includes(q));
