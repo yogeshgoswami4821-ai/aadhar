@@ -2,40 +2,46 @@ let allData = [];
 let charts = {};
 
 function initDashboard() {
-    const config = (type, color) => ({
-        type: type,
-        data: { labels: [], datasets: [{ data: [], backgroundColor: color, borderColor: color, tension: 0.4, fill: true, pointRadius: 2 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: (type === 'doughnut') } } }
-    });
-    charts.main = new Chart(document.getElementById('enrolmentChart'), config('bar', '#ef4444'));
-    charts.comparison = new Chart(document.getElementById('comparisonChart'), config('doughnut', ['#3b82f6','#8b5cf6','#ef4444','#f59e0b','#10b981']));
-    charts.top1 = new Chart(document.getElementById('topChart1'), config('line', '#3b82f6'));
-    charts.top2 = new Chart(document.getElementById('topChart2'), config('line', '#8b5cf6'));
+    // Initial chart creation
+    createCharts();
 }
 
-// 1. STRICT STATE CLEANING (Dadra/Daman/Darbhanga Sab Out)
+function createCharts() {
+    // Purane charts agar hain toh unhe destroy karo taaki naya data dikhe
+    if (charts.main) charts.main.destroy();
+    if (charts.comparison) charts.comparison.destroy();
+
+    const config = (type, color) => ({
+        type: type,
+        data: { labels: [], datasets: [{ label: 'Total Count', data: [], backgroundColor: color, borderColor: color, borderWidth: 1 }] },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            scales: type === 'bar' ? { y: { beginAtZero: true } } : {} 
+        }
+    });
+
+    charts.main = new Chart(document.getElementById('enrolmentChart'), config('bar', '#ef4444'));
+    charts.comparison = new Chart(document.getElementById('comparisonChart'), config('doughnut', ['#3b82f6','#8b5cf6','#ef4444','#f59e0b','#10b981']));
+}
+
 function getCleanState(name) {
     if (!name) return null;
     let s = name.toString().toUpperCase().trim();
+    
+    // Dadra, Daman, aur Darbhanga ko list se bahar rakho
+    const blockList = ["DADRA", "DAMAN", "NAGAR", "HAVELI", "DIU", "DARBHANGA", "AGE_", "100000"];
+    if (blockList.some(b => s.includes(b))) return null;
 
-    // Inhe list mein aane hi nahi dena hai
-    const strictBlock = ["DADRA", "DAMAN", "NAGAR", "HAVELI", "DIU", "DARBHANGA", "AGE_", "100000", "STEP", "TOTAL"];
-    if (strictBlock.some(word => s.includes(word))) return null;
-
-    // Spelling variations ko merge karna
     if (s.includes("BENG") || s.includes("BANGAL")) return "West Bengal";
     if (s.includes("JAMMU")) return "Jammu & Kashmir";
-    if (s.includes("CHHATTIS")) return "Chhattisgarh";
-    if (s.includes("PUDU") || s.includes("PONDI")) return "Puducherry";
-    if (s.includes("ANDAMAN")) return "Andaman & Nicobar Islands";
-
-    // Format: MAHARASHTRA -> Maharashtra
+    
     return s.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 }
 
 async function uploadCSV() {
     const files = document.getElementById("fileInput").files;
-    if (!files.length) return alert("Pehle file select karo!");
+    if (!files.length) return alert("File chuno!");
     let rows = [];
     for (let f of files) {
         const text = await f.text();
@@ -51,27 +57,19 @@ function parseData(rows) {
 
     rows.forEach((row, i) => {
         if (row.length < 3) return;
-
-        // Date dhoondna
         let dateVal = row.find(v => v && (v.includes('/') || v.includes('-')) && v.length > 5);
         if (!dateVal) return;
 
-        // Enrolment Number dhoondna (Largest number in row)
-        let numbers = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
-        let maxVal = Math.max(...numbers);
+        // Row mein sabse bada number dhoondo (Enrolment)
+        let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
+        let maxVal = Math.max(...nums);
 
-        // State/District dhoondna
         let textCols = row.filter(v => v && isNaN(v) && v.length > 2 && !v.includes('/') && !v.includes('-'));
-        let stateClean = getCleanState(textCols[0]); 
-        let distName = textCols[1] || textCols[0] || "Unknown";
+        let stateClean = getCleanState(textCols[0]);
+        let distName = textCols[1] || textCols[0];
 
         if (stateClean && maxVal > 0) {
-            allData.push({
-                date: dateVal.trim(),
-                state: stateClean,
-                dist: distName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
-                val: maxVal
-            });
+            allData.push({ date: dateVal.trim(), state: stateClean, dist: distName.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()), val: maxVal });
             dates.add(dateVal.trim());
         }
     });
@@ -86,20 +84,16 @@ function populateStateList() {
     document.getElementById('stateList').innerHTML = states.map(s => `
         <div class="multi-select-item">
             <input type="checkbox" class="state-check" value="${s}" onchange="updateDistrictList()"> ${s}
-        </div>
-    `).join('');
+        </div>`).join('');
 }
 
 function updateDistrictList() {
     const selStates = Array.from(document.querySelectorAll('.state-check:checked')).map(i => i.value);
-    const container = document.getElementById('distList');
     const districts = [...new Set(allData.filter(d => !selStates.length || selStates.includes(d.state)).map(d => d.dist))].sort();
-    
-    container.innerHTML = districts.map(d => `
+    document.getElementById('distList').innerHTML = districts.map(d => `
         <div class="multi-select-item">
             <input type="checkbox" class="dist-check" value="${d}" onchange="applyFilters()"> ${d}
-        </div>
-    `).join('');
+        </div>`).join('');
     applyFilters();
 }
 
@@ -113,7 +107,6 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    // Sabhi entries ko shehar ke mutabik group karke total karna
     let grouped = {};
     filtered.forEach(item => {
         let key = item.dist + "|" + item.state;
@@ -129,16 +122,17 @@ function applyFilters() {
 function updateCharts(data) {
     const top = data.slice(0, 10);
     
-    // Charts update with enrolment data
+    // Bar Chart Update
     charts.main.data.labels = top.map(d => d.dist);
     charts.main.data.datasets[0].data = top.map(d => d.val);
     charts.main.update();
 
+    // Pie/Doughnut Chart Update
     charts.comparison.data.labels = top.slice(0, 5).map(d => d.dist);
     charts.comparison.data.datasets[0].data = top.slice(0, 5).map(d => d.val);
     charts.comparison.update();
 
-    document.getElementById('totalCountDisplay').innerText = `Active Regions: ${data.length}`;
+    document.getElementById('totalCountDisplay').innerText = `Records: ${data.length}`;
 }
 
 function populateDateDropdown(dates) {
@@ -151,8 +145,7 @@ function displayCards(data) {
         <div class="status-card">
             <div><strong>${d.dist}</strong> <br> <small>${d.state}</small></div>
             <div style="color:#2563eb; font-weight:bold">${d.val.toLocaleString()}</div>
-        </div>
-    `).join('');
+        </div>`).join('');
 }
 
 window.onload = initDashboard;
