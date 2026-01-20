@@ -13,47 +13,39 @@ function initDashboard() {
     charts.top2 = new Chart(document.getElementById('topChart2'), config('line', '#8b5cf6'));
 }
 
-// --- FIXED CLEANING LOGIC (AS PER YOUR SCREENSHOTS) ---
-function cleanStateName(name) {
+// --- UPDATED VALIDATOR: Dadra & Daman ko block karne ke liye ---
+function getValidState(name) {
     if (!name) return null;
-
-    // Invisible junk aur extra space hatana
     let clean = name.toString().toUpperCase().replace(/[^\x20-\x7E]/g, '').trim();
 
-    // 1. DADRA & DAMAN MERGE (Zabardasti ek naam)
-    if (clean.includes("DADRA") || clean.includes("DAMAN") || clean.includes("NAGAR HAVELI")) {
-        return "Dadra & Nagar Haveli & Daman & Diu";
+    // 1. DADRA & DAMAN BLOCK: Isse ye list se gayab ho jayenge
+    if (clean.includes("DADRA") || clean.includes("DAMAN") || clean.includes("NAGAR") || clean.includes("HAVELI")) {
+        return null; // Rejecting Dadra & Nagar Haveli & Daman & Diu
     }
 
-    // 2. WEST BENGAL MERGE (Sari galat spelling fix)
-    if (clean.includes("WEST") && (clean.includes("BENGAL") || clean.includes("BANGAL") || clean.includes("BENGLI"))) {
-        return "West Bengal";
-    }
-
-    // 3. ANDAMAN, JAMMU, PUDUCHERRY MERGE
+    // 2. West Bengal variations fix
+    if (clean.includes("WEST") && (clean.includes("BENGAL") || clean.includes("BANGAL") || clean.includes("BENGLI"))) return "West Bengal";
+    
+    // 3. Others variations fix
     if (clean.includes("ANDAMAN")) return "Andaman & Nicobar Islands";
-    if (clean.includes("JAMMU")) return "Jammu & Kashmir";
+    if (clean.includes("JAMMU") || clean.includes("KASHMIR")) return "Jammu & Kashmir";
     if (clean.includes("PONDICHERRY") || clean.includes("PUDUCHERRY")) return "Puducherry";
     if (clean.includes("CHHATTISGARH")) return "Chhattisgarh";
 
-    // 4. BLOCKLIST (Jo SS mein faltu dikh raha tha wo sab block)
-    const blockList = ["DARBHANGA", "STEP", "MONITORING", "TOTAL", "UNKNOWN", "UNDEFINED", "SELECT", "PLACE", "AGE_", "100000"];
-    if (blockList.some(b => clean.includes(b)) || clean.length < 4) return null;
+    // Valid States List (Without Dadra/Daman)
+    const validStates = [
+        "ANDHRA PRADESH", "ARUNACHAL PRADESH", "ASSAM", "BIHAR", "CHHATTISGARH", "GOA", "GUJARAT", "HARYANA", 
+        "HIMACHAL PRADESH", "JHARKHAND", "KARNATAKA", "KERALA", "MADHYA PRADESH", "MAHARASHTRA", "MANIPUR", 
+        "MEGHALAYA", "MIZORAM", "NAGALAND", "ODISHA", "PUNJAB", "RAJASTHAN", "SIKKIM", "TAMIL NADU", 
+        "TELANGANA", "TRIPURA", "UTTAR PRADESH", "UTTARAKHAND", "WEST BENGAL", "ANDAMAN & NICOBAR ISLANDS", 
+        "CHANDIGARH", "LAKSHADWEEP", "DELHI", "PUDUCHERRY", "LADAKH", "JAMMU & KASHMIR"
+    ];
 
-    // Proper formatting (Maharashtra, Goa, etc.)
-    return clean.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-}
-
-async function uploadCSV() {
-    const files = document.getElementById("fileInput").files;
-    if (!files.length) return alert("File chuno!");
-    let rows = [];
-    for (let f of files) {
-        const text = await f.text();
-        const res = Papa.parse(text.trim(), { header: false, skipEmptyLines: true });
-        rows = rows.concat(res.data);
+    if (validStates.includes(clean)) {
+        return clean.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
     }
-    parseData(rows);
+
+    return null; 
 }
 
 function parseData(rows) {
@@ -62,20 +54,17 @@ function parseData(rows) {
 
     rows.forEach((row, i) => {
         if (i === 0 || row.length < 3) return;
-
         let dateIdx = row.findIndex(v => /[\d\-\/]/.test(v) && v.length > 5);
         if (dateIdx === -1) return;
 
-        let dateVal = row[dateIdx].trim();
-        let stateVal = cleanStateName(row[dateIdx + 1]);
+        let stateVal = getValidState(row[dateIdx + 1]);
         let distRaw = row[dateIdx + 2] ? row[dateIdx + 2].toString().trim() : "";
         let distVal = distRaw.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 
-        // District list mein number na aaye uska check
-        if (stateVal && distVal && isNaN(distVal)) {
+        if (stateVal && isNaN(distVal) && distVal.length > 2) {
             let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
-            allData.push({ date: dateVal, state: stateVal, dist: distVal, val: Math.max(...nums) });
-            dates.add(dateVal);
+            allData.push({ date: row[dateIdx].trim(), state: stateVal, dist: distVal, val: Math.max(...nums) });
+            dates.add(row[dateIdx].trim());
         }
     });
 
@@ -85,7 +74,6 @@ function parseData(rows) {
 }
 
 function populateStateList() {
-    // Unique Set ensure karta hai ki 'West Bengal' ek hi baar dikhe
     const states = [...new Set(allData.map(d => d.state))].sort();
     document.getElementById('stateList').innerHTML = states.map(s => `
         <div class="multi-select-item">
@@ -97,7 +85,6 @@ function populateStateList() {
 function updateDistrictList() {
     const selStates = Array.from(document.querySelectorAll('.state-check:checked')).map(i => i.value);
     const container = document.getElementById('distList');
-    
     if (!selStates.length) {
         container.innerHTML = '<p style="font-size:11px; color:gray; padding:5px;">Select State first...</p>';
     } else {
@@ -121,12 +108,11 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    // Grouping logic Bhopal fix ke liye (Multiple lines merge ho jayengi)
     let grouped = {};
     filtered.forEach(item => {
-        let key = item.dist + item.state;
-        if(!grouped[key]) grouped[key] = { ...item };
-        else grouped[key].val += item.val;
+        let key = item.dist + "-" + item.state;
+        if (!grouped[key]) grouped[key] = { ...item };
+        else grouped[key].val = Math.max(grouped[key].val, item.val);
     });
 
     let finalData = Object.values(grouped).sort((a, b) => b.val - a.val);
@@ -144,7 +130,7 @@ function updateCharts(data) {
     charts.comparison.data.datasets[0].data = top.slice(0, 5).map(d => d.val);
     charts.comparison.update();
 
-    document.getElementById('totalCountDisplay').innerText = `${data.length} Valid Regions`;
+    document.getElementById('totalCountDisplay').innerText = `${data.length} Valid Regions Found`;
 }
 
 function populateDateDropdown(dates) {
