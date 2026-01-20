@@ -1,7 +1,7 @@
 let allData = [];
 let charts = {};
 
-// Initialize framework
+// Dashboard initialize karein
 function initDashboard() {
     const miniConfig = (color) => ({
         type: 'line',
@@ -23,13 +23,14 @@ function initDashboard() {
     });
 }
 
+// CSV Upload logic
 async function uploadCSV() {
     const fileInput = document.getElementById("fileInput");
     if (fileInput.files.length === 0) return alert("Please select CSV files!");
 
     const btn = document.getElementById("uploadBtn");
     btn.innerText = "Merging & Analyzing...";
-    btn.disabled = true; // Prevents double clicking
+    btn.disabled = true; 
     
     let combinedRows = [];
     const files = Array.from(fileInput.files);
@@ -52,19 +53,29 @@ async function uploadCSV() {
     btn.disabled = false;
 }
 
+// Data Processing with fix for "0" values
 function processData(data) {
     let summary = {};
     let grandTotal = 0;
 
+    if (data.length === 0) return alert("CSV is empty!");
+
+    // Universal Key Finder: Column names handle karne ke liye
+    const firstRow = data[0];
+    const keys = Object.keys(firstRow);
+    const stateKey = keys.find(k => k.trim().toLowerCase() === 'state');
+    const distKey = keys.find(k => k.trim().toLowerCase() === 'district');
+    const enrolKey = keys.find(k => ['enrolment', 'enrolments', 'count', 'total'].includes(k.trim().toLowerCase()));
+
     data.forEach(row => {
-        // Trim spaces from keys and values
-        let state = (row.State || row.state || "").trim();
-        let dist = (row.District || row.district || "").trim();
-        let enrol = row.Enrolment || row.enrolment || row.Count || 0;
+        let state = (row[stateKey] || "").toString().trim();
+        let dist = (row[distKey] || "").toString().trim();
+        let enrolValue = row[enrolKey] || 0;
         
         if (state && dist) {
             let label = `${state} > ${dist}`;
-            let val = parseInt(enrol.toString().replace(/,/g, '')) || 0;
+            // Comma hatana aur number mein convert karna
+            let val = parseInt(enrolValue.toString().replace(/,/g, '')) || 0;
             summary[label] = (summary[label] || 0) + val;
             grandTotal += val;
         }
@@ -79,33 +90,33 @@ function processData(data) {
     updateUI(grandTotal);
 }
 
+// Dashboard UI update karein
 function updateUI(total) {
-    // 1. Update Counts and Dynamic Percentage
     document.getElementById('totalCountDisplay').innerText = `${allData.length} Regions Analyzed`;
     
-    // Logic: Calculate a mock target percentage based on data (e.g., efficiency)
+    // Percentage update based on data volume
     let mockPercent = total > 0 ? Math.min(Math.round((total / (allData.length * 10000)) * 100), 100) : 0;
     document.getElementById('mainPercent').innerText = (mockPercent || 65) + "%";
     
-    // 2. Update Main Bar Chart
+    // Update Main Bar Chart
     const top10 = allData.slice(0, 10);
-    charts.main.data.labels = top10.map(d => d.place.split(' > ')[1]);
+    charts.main.data.labels = top10.map(d => d.place.split(' > ')[1]); // District name only
     charts.main.data.datasets[0].data = top10.map(d => d.enrolment);
     
-    // Dynamic Bar Colors based on Status Code
+    // R-Y-G Colors for bars
     charts.main.data.datasets[0].backgroundColor = top10.map(d => 
         d.code === 'R' ? '#ef4444' : (d.code === 'Y' ? '#f59e0b' : '#10b981')
     );
     
     charts.main.update();
-
     displayCards(allData);
 }
 
+// Monitoring Cards display karein
 function displayCards(data) {
     const container = document.getElementById("resultContainer");
     if (data.length === 0) {
-        container.innerHTML = '<div class="placeholder-text">No data found.</div>';
+        container.innerHTML = '<div class="placeholder-text">No data matches your search.</div>';
         return;
     }
 
@@ -120,6 +131,7 @@ function displayCards(data) {
     `).join('');
 }
 
+// Search functionality
 function filterData() {
     const q = document.getElementById("searchInput").value.toLowerCase();
     const filtered = allData.filter(d => d.place.toLowerCase().includes(q));
