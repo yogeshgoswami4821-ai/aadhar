@@ -26,30 +26,32 @@ function processData(data) {
     if (!data || data.length === 0) return;
 
     const keys = Object.keys(data[0]);
-    
-    // Sabse important fix: Flexible search for Tehsil and Enrolment
     const findKey = (list) => keys.find(k => list.some(name => k.toLowerCase().trim().includes(name)));
 
+    // Mandatory Columns
     const sKey = findKey(["state", "st"]);
     const dKey = findKey(["district", "dist"]);
-    const tKey = findKey(["tehsil", "sub-dist", "taluka", "block"]); // Tehsil fix
-    const eKey = findKey(["enrol", "enroll", "count", "total"]); // Enrolment fix
+    const eKey = findKey(["enrol", "enroll", "count", "total"]);
 
-    if (!sKey || !dKey || !tKey || !eKey) {
+    // Optional Column (Tehsil)
+    const tKey = findKey(["tehsil", "sub-dist", "taluka", "block"]);
+
+    if (!sKey || !dKey || !eKey) {
         container.innerHTML = `
             <div style="color:red; border:2px solid red; padding:15px; border-radius:8px; background:#fff5f5;">
-                <h3>⚠️ CSV HEADER ERROR</h3>
-                <p>Missing: ${!sKey?'State ':''} ${!dKey?'District ':''} ${!tKey?'Tehsil ':''} ${!eKey?'Enrolment':''}</p>
-                <p><small>Headers must be: State, District, Tehsil, Enrolment</small></p>
+                <h3>⚠️ CRITICAL HEADER MISSING</h3>
+                <p>Ensure file has: <b>State, District, Enrolment</b></p>
+                <p><small>(Tehsil is now optional)</small></p>
             </div>`;
         return;
     }
 
     let summary = {};
     data.forEach(row => {
-        let path = `${row[sKey]} > ${row[dKey]} > ${row[tKey]}`;
+        // Agar Tehsil nahi hai toh sirf State > District dikhao
+        let placeLabel = tKey ? `${row[sKey]} > ${row[dKey]} > ${row[tKey]}` : `${row[sKey]} > ${row[dKey]}`;
         let val = parseInt(row[eKey]) || 0;
-        summary[path] = (summary[path] || 0) + val;
+        summary[placeLabel] = (summary[placeLabel] || 0) + val;
     });
 
     const entries = Object.entries(summary);
@@ -76,14 +78,8 @@ function displayCards(data) {
                 <div class="card-info">
                     <h3>${item.place}</h3>
                     <p><strong>Enrolment:</strong> ${item.enrolment.toLocaleString()}</p>
-                    <p><strong>Analysis:</strong> ${item.status}</p>
+                    <p><strong>Status:</strong> ${item.status}</p>
                 </div>
             </div>`;
     });
-}
-
-function filterData() {
-    const q = document.getElementById("searchInput").value.toUpperCase();
-    const filtered = allData.filter(d => d.place.toUpperCase().includes(q) || d.code === q);
-    displayCards(filtered);
 }
