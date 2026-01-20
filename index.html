@@ -3,34 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aadhaar Hierarchy Analytics | Social Trends</title>
+    <title>Aadhaar Hierarchy Analytics</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
     <header>
-        <div class="header-content">
-            <div class="design-icons">💎 Xd Ps</div>
-            <h1>Aadhaar Societal Trends Analytics</h1>
-        </div>
+        <div class="design-icons">💎 Xd Ps</div>
+        <h1>Aadhaar Societal Trends Analytics</h1>
     </header>
 
     <main class="dashboard-grid">
         <section class="card small-chart">
             <h3>Total Enrolments</h3>
-            <div class="chart-container">
-                <canvas id="topChart1"></canvas>
-            </div>
+            <div class="chart-container"><canvas id="topChart1"></canvas></div>
         </section>
-
+        
         <section class="card small-chart">
             <h3>Updates</h3>
-            <div class="chart-container">
-                <canvas id="topChart2"></canvas>
-            </div>
+            <div class="chart-container"><canvas id="topChart2"></canvas></div>
         </section>
 
         <section class="card map-box">
@@ -42,15 +35,16 @@
         <section class="card donut-box">
             <h3>Current Status</h3>
             <div class="circle-wrap">
-                <div class="percent" id="mainPercent">0%</div>
+                <div class="percent" id="mainPercent">65%</div>
             </div>
-            <p id="totalCountDisplay">Upload data to start</p>
+            <p id="totalCountDisplay">Upload CSV to start</p>
         </section>
 
         <section class="card upload-box">
             <h3>Step 1: Data Ingestion</h3>
             <input type="file" id="fileInput" accept=".csv" multiple>
-            <button onclick="uploadCSV()" id="uploadBtn">Analyze Combined Data</button>
+            <button onclick="uploadCSV()" id="uploadBtn">⚡ Analyze Combined Data</button>
+            <p class="tip">Tip: Select multiple files using Ctrl or Shift.</p>
         </section>
 
         <section class="card search-section">
@@ -68,10 +62,6 @@
             </div>
         </section>
     </main>
-
-    <footer>
-        <p>&copy; 2026 Aadhaar Analytics Framework | National Hackathon Submission</p>
-    </footer>
 
     <script src="script.js"></script>
 </body>
