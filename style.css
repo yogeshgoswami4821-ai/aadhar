@@ -4,6 +4,7 @@ body {
     background: #f1f5f9; 
     margin: 0; 
     padding: 20px;
+    color: #1e293b;
 }
 
 header { 
@@ -11,16 +12,26 @@ header {
     margin-bottom: 30px; 
 }
 
-header h1 { color: #1e3a8a; font-size: 24px; }
-.design-icons { margin-bottom: 10px; font-size: 20px; letter-spacing: 5px; }
+header h1 { 
+    color: #1e3a8a; 
+    font-size: 28px; 
+    margin: 10px 0;
+}
 
-/* Dashboard Grid Layout */
+.design-icons { 
+    margin-bottom: 10px; 
+    font-size: 20px; 
+    letter-spacing: 8px; 
+    color: #64748b;
+}
+
+/* Dashboard Grid Layout - Image ke according 4 columns */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: auto auto auto;
+    grid-auto-rows: minmax(150px, auto);
     gap: 20px;
-    max-width: 1200px;
+    max-width: 1300px;
     margin: 0 auto;
 }
 
@@ -29,95 +40,147 @@ header h1 { color: #1e3a8a; font-size: 24px; }
     background: white;
     padding: 20px;
     border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
+    transition: transform 0.2s;
 }
 
-.card h3 {
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+.card h3, .card h2 {
     font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     color: #64748b;
+    margin-bottom: 15px;
     margin-top: 0;
 }
 
-/* Specific Positions to mimic the image */
-.small-chart { grid-column: span 1; height: 150px; }
-
-.map-section { 
+/* Specific Layout Adjustments */
+.map-box { 
     grid-column: span 2; 
     grid-row: span 2; 
-    background: #ffffff;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 400px;
+    background: #fff;
 }
 
-.donut-section {
+.map-placeholder img {
+    max-width: 100%;
+    height: auto;
+    filter: hue-rotate(200deg) brightness(1.1); /* Map ko blue theme dene ke liye */
+}
+
+.donut-box {
     grid-column: span 1;
     text-align: center;
+    align-items: center;
     justify-content: center;
-    border: 4px solid #3b82f6;
 }
 
-.percentage-circle {
-    font-size: 32px;
+.circle-wrap {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 8px solid #e2e8f0;
+    border-top: 8px solid #3b82f6; /* Image ki tarah blue progress bar */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.percent {
+    font-size: 22px;
     font-weight: bold;
     color: #1e3a8a;
 }
-
-.upload-box { grid-column: span 1; }
 
 .search-section {
     grid-column: span 1;
     grid-row: span 2;
 }
 
-.wide-chart {
-    grid-column: span 3;
-    height: 250px;
+.chart-container {
+    flex-grow: 1;
+    position: relative;
 }
 
 /* Inputs & Buttons */
 #searchInput, #fileInput {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     margin: 10px 0;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-sizing: border-box;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+#searchInput:focus {
+    border-color: #3b82f6;
 }
 
 button {
     background: #3b82f6;
     color: white;
     border: none;
-    padding: 10px;
-    border-radius: 8px;
+    padding: 12px;
+    border-radius: 10px;
     cursor: pointer;
-    font-weight: bold;
+    font-weight: 600;
+    width: 100%;
 }
 
-button:hover { background: #2563eb; }
+button:hover {
+    background: #1e3a8a;
+}
 
-/* Result Cards Inside List */
-.result-list { margin-top: 15px; overflow-y: auto; max-height: 300px; }
+/* Status Cards inside Search Results */
+.result-grid {
+    margin-top: 15px;
+    overflow-y: auto;
+    max-height: 400px;
+}
 
 .status-card {
-    padding: 10px;
-    margin-bottom: 8px;
-    border-radius: 8px;
-    border-left: 5px solid;
-    font-size: 13px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border-left: 6px solid #cbd5e1;
     background: #f8fafc;
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
 }
 
-.red-card { border-color: #ef4444; }
-.yellow-card { border-color: #f59e0b; }
-.green-card { border-color: #10b981; }
+.red-card { border-color: #ef4444; background: #fef2f2; }
+.yellow-card { border-color: #f59e0b; background: #fffbeb; }
+.green-card { border-color: #10b981; background: #ecfdf5; }
 
-/* Responsive */
-@media (max-width: 900px) {
-    .dashboard-grid { grid-template-columns: 1fr 1fr; }
-    .map-section, .wide-chart { grid-column: span 2; }
+/* Responsive Adjustments */
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    .map-box { grid-column: span 1; }
+}
+
+footer {
+    text-align: center;
+    padding: 40px;
+    color: #94a3b8;
+    font-size: 12px;
 }
