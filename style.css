@@ -1,51 +1,207 @@
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', sans-serif; background: #f1f5f9; padding: 20px; color: #334155; }
-header { text-align: center; padding: 20px 0; }
-header h1 { color: #1e3a8a; font-size: 26px; font-weight: 700; }
+/* Base Reset & Global Styles */
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+}
 
+body { 
+    font-family: 'Inter', sans-serif; 
+    background: #f1f5f9; 
+    padding: 20px; 
+    color: #334155; 
+    line-height: 1.5;
+}
+
+header { 
+    text-align: center; 
+    padding: 20px 0; 
+    margin-bottom: 20px; 
+}
+
+header h1 { 
+    color: #1e3a8a; 
+    font-size: 28px; 
+    font-weight: 700; 
+    letter-spacing: -0.5px;
+}
+
+/* Dashboard Grid Layout */
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(100px, auto);
     gap: 20px;
     max-width: 1400px;
     margin: 0 auto;
 }
 
+/* Common Card Styling */
 .card {
-    background: #ffffff; padding: 20px; border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column;
+    background: #ffffff; 
+    padding: 24px; 
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+    display: flex; 
+    flex-direction: column;
     border: 1px solid rgba(226, 232, 240, 0.8);
+    transition: transform 0.2s ease;
 }
 
-.card h3 { font-size: 11px; color: #64748b; text-transform: uppercase; margin-bottom: 15px; }
+.card h3 { 
+    font-size: 12px; 
+    color: #64748b; 
+    text-transform: uppercase; 
+    margin-bottom: 15px; 
+    letter-spacing: 0.05em; 
+    font-weight: 600;
+}
 
-.comparison-chart-box { grid-column: span 2; grid-row: span 2; min-height: 480px; }
-.donut-box { text-align: center; align-items: center; justify-content: center; }
+/* Comparison Chart Box (Multi-Region) */
+.comparison-chart-box { 
+    grid-column: span 2; 
+    grid-row: span 2; 
+    min-height: 500px; 
+}
+
+/* Status Donut Box */
+.donut-box { 
+    text-align: center; 
+    align-items: center; 
+    justify-content: center; 
+}
+
 .circle-wrap {
-    width: 110px; height: 110px; border-radius: 50%;
-    border: 12px solid #f1f5f9; border-top: 12px solid #3b82f6;
-    display: flex; align-items: center; justify-content: center; margin: 15px 0;
+    width: 120px; 
+    height: 120px; 
+    border-radius: 50%;
+    border: 12px solid #f1f5f9; 
+    border-top: 12px solid #3b82f6;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    margin: 20px 0;
+    transition: transform 0.5s ease;
 }
-.percent { font-size: 22px; font-weight: 700; color: #1e40af; }
 
+.percent { 
+    font-size: 24px; 
+    font-weight: 700; 
+    color: #1e40af; 
+}
+
+/* Multi-Select Filters Styling */
+.filter-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.filter-controls label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+    margin-top: 5px;
+}
+
+.multi-select-box {
+    max-height: 140px; 
+    overflow-y: auto; 
+    border: 1.5px solid #e2e8f0;
+    padding: 10px; 
+    border-radius: 10px; 
+    background: #f8fafc;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.multi-select-item { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    font-size: 13px; 
+    padding: 6px 4px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.multi-select-item:hover {
+    background: #eff6ff;
+}
+
+.multi-select-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #2563eb;
+    cursor: pointer;
+}
+
+/* Grid Spanning & Responsive Sizes */
 .search-section { grid-column: span 1; grid-row: span 2; }
-.wide-chart { grid-column: span 3; min-height: 320px; }
-.small-chart { height: 180px; }
-.chart-container { flex-grow: 1; position: relative; width: 100%; height: 100%; }
+.wide-chart { grid-column: span 3; min-height: 350px; }
+.small-chart { height: 200px; }
 
-.filter-controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-#stateSelect, #distSelect, #searchInput, #fileInput {
-    width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;
+.chart-container { 
+    flex-grow: 1; 
+    position: relative; 
+    width: 100%; 
+    height: 100%; 
 }
 
-button { background: #2563eb; color: #ffffff; border: none; padding: 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
-button:hover { background: #1d4ed8; }
+/* Input & Buttons */
+#searchInput, #fileInput { 
+    width: 100%; 
+    padding: 12px; 
+    border: 1.5px solid #e2e8f0; 
+    border-radius: 10px; 
+    background: #ffffff;
+    font-size: 14px;
+}
 
-.result-grid { overflow-y: auto; max-height: 380px; margin-top: 10px; }
+button { 
+    background: #2563eb; 
+    color: #ffffff; 
+    border: none; 
+    padding: 14px; 
+    border-radius: 10px; 
+    cursor: pointer; 
+    font-weight: 600; 
+    width: 100%;
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+    transition: all 0.2s ease;
+}
+
+button:hover { 
+    background: #1d4ed8; 
+    transform: translateY(-1px);
+    box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3);
+}
+
+/* Result Cards List */
+.result-grid { 
+    overflow-y: auto; 
+    max-height: 350px; 
+    margin-top: 15px; 
+    padding-right: 5px;
+}
+
 .status-card {
-    padding: 14px; margin-bottom: 10px; border-radius: 12px; border-left: 6px solid #94a3b8;
-    background: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.02); display: flex; justify-content: space-between;
+    padding: 12px 16px; 
+    margin-bottom: 10px; 
+    border-radius: 12px; 
+    border-left: 5px solid #94a3b8; 
+    background: #ffffff; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    border: 1px solid #f1f5f9;
 }
-.red-card { border-left-color: #ef4444; background: #fff1f2; }
-.yellow-card { border-left-color: #f59e0b; background: #fffbeb; }
-.green-card { border-left-color: #10b981; background: #f0fdf4; }
+
+.status-card span { font-weight: 500; font-size: 13px; }
+.status-card strong { color: #1e3a8a; }
+
+/* Scrollbar Customization */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
