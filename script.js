@@ -13,53 +13,30 @@ function initDashboard() {
     charts.top2 = new Chart(document.getElementById('topChart2'), config('line', '#8b5cf6'));
 }
 
-// --- FIX: Sabhi kachra saaf karne ka naya logic ---
+// 1. CLEANING LOGIC: Sab kachra saaf aur merge karne ke liye
 function getCleanState(name) {
     if (!name) return null;
-    let clean = name.toString().toUpperCase().replace(/[^\x20-\x7E]/g, '').trim();
+    let s = name.toString().toUpperCase().trim();
 
-    // 1. DADRA, DAMAN aur DARBHANGA ko seedha bahar karo
-    if (clean.includes("DADRA") || clean.includes("DAMAN") || clean.includes("DARBHANGA") || clean.includes("100000") || clean.includes("AGE_")) {
-        return null; 
+    // Dadra, Daman, aur Darbhanga ko seedha BLOCK karo
+    if (s.includes("DADRA") || s.includes("DAMAN") || s.includes("DARBHANGA") || s.includes("AGE_") || s.includes("100000")) {
+        return null;
     }
 
-    // 2. West Bengal variations (Bengli, Bangal etc.) ko ek karo
-    if (clean.includes("BENG") || clean.includes("BANGAL")) return "West Bengal";
-    
-    // 3. Jammu & Kashmir variations
-    if (clean.includes("JAMMU")) return "Jammu & Kashmir";
+    // West Bengal ke saare spelling variations merge karo
+    if (s.includes("BENG") || s.includes("BANGAL")) return "West Bengal";
+    if (s.includes("CHHATTIS")) return "Chhattisgarh";
+    if (s.includes("JAMMU")) return "Jammu & Kashmir";
+    if (s.includes("PUDU") || s.includes("PONDI")) return "Puducherry";
+    if (s.includes("ANDAMAN")) return "Andaman & Nicobar Islands";
 
-    // 4. Puducherry / Pondicherry
-    if (clean.includes("PUDU") || clean.includes("PONDI")) return "Puducherry";
-
-    // 5. Chhattisgarh spelling fix
-    if (clean.includes("CHHATTIS")) return "Chhattisgarh";
-
-    // Standard list for validation
-    const validStates = [
-        "ANDHRA PRADESH", "ARUNACHAL PRADESH", "ASSAM", "BIHAR", "CHHATTISGARH", "GOA", "GUJARAT", "HARYANA", 
-        "HIMACHAL PRADESH", "JHARKHAND", "KARNATAKA", "KERALA", "MADHYA PRADESH", "MAHARASHTRA", "MANIPUR", 
-        "MEGHALAYA", "MIZORAM", "NAGALAND", "ODISHA", "PUNJAB", "RAJASTHAN", "SIKKIM", "TAMIL NADU", 
-        "TELANGANA", "TRIPURA", "UTTAR PRADESH", "UTTARAKHAND", "WEST BENGAL", "ANDAMAN & NICOBAR ISLANDS", 
-        "CHANDIGARH", "LAKSHADWEEP", "DELHI", "PUDUCHERRY", "LADAKH", "JAMMU & KASHMIR"
-    ];
-
-    // Agar standard list mein hai toh formatted return karo
-    if (validStates.includes(clean)) {
-        return clean.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-    }
-
-    // Agar list mein nahi hai but valid lag raha hai (length > 3), toh bhi le lo taaki data dikhe
-    if (clean.length > 3 && isNaN(clean)) {
-        return clean.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-    }
-
-    return null;
+    // Baaki sabko title case mein badlo (e.g. BIHAR -> Bihar)
+    return s.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 }
 
 async function uploadCSV() {
     const files = document.getElementById("fileInput").files;
-    if (!files.length) return alert("Bhai, file toh select kar!");
+    if (!files.length) return alert("Pehle file chuno bhai!");
     
     let rows = [];
     for (let f of files) {
@@ -75,30 +52,37 @@ function parseData(rows) {
     let dates = new Set();
 
     rows.forEach((row, i) => {
-        if (i === 0 || row.length < 3) return;
-        
-        // Date column dhundho
-        let dateIdx = row.findIndex(v => v && v.toString().includes('/') || v.toString().includes('-'));
+        // Sirf un rows ko lo jisme data ho
+        if (row.length < 3) return;
+
+        // Date column pehchano (e.g. 2024-01-20 or 20/01/24)
+        let dateIdx = row.findIndex(v => v && (v.includes('/') || v.includes('-')) && v.length > 5);
         if (dateIdx === -1) return;
 
-        let stateVal = getCleanState(row[dateIdx + 1]);
-        let distRaw = row[dateIdx + 2] ? row[dateIdx + 2].toString().trim() : "";
-        let distVal = distRaw.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+        let rawState = row[dateIdx + 1];
+        let rawDist = row[dateIdx + 2];
 
-        if (stateVal && distVal && isNaN(distVal)) {
+        let stateVal = getCleanState(rawState);
+        let distVal = rawDist ? rawDist.toString().trim() : "";
+
+        // Agar state valid hai aur district koi number nahi hai
+        if (stateVal && distVal && isNaN(distVal) && distVal.length > 2) {
+            // Row mein se sabse bada number dhoondo (vahi enrolment count hai)
             let nums = row.map(v => parseInt(v.toString().replace(/[^0-9]/g, '')) || 0);
-            allData.push({ 
-                date: row[dateIdx].trim(), 
-                state: stateVal, 
-                dist: distVal, 
-                val: Math.max(...nums) 
+            let val = Math.max(...nums);
+
+            allData.push({
+                date: row[dateIdx].trim(),
+                state: stateVal,
+                dist: distVal.toLowerCase().replace(/\b\w/g, l => l.toUpperCase()),
+                val: val
             });
             dates.add(row[dateIdx].trim());
         }
     });
 
-    if(allData.length === 0) {
-        alert("Data load nahi ho paya. Check karo CSV format sahi hai na?");
+    if (allData.length === 0) {
+        alert("Data load nahi hua! Shayad CSV columns alag hain.");
     }
 
     populateDateDropdown([...dates]);
@@ -118,7 +102,10 @@ function populateStateList() {
 function updateDistrictList() {
     const selStates = Array.from(document.querySelectorAll('.state-check:checked')).map(i => i.value);
     const container = document.getElementById('distList');
-    const districts = [...new Set(allData.filter(d => !selStates.length || selStates.includes(d.state)).map(d => d.dist))].sort();
+    
+    const districts = [...new Set(allData
+        .filter(d => selStates.length === 0 || selStates.includes(d.state))
+        .map(d => d.dist))].sort();
     
     container.innerHTML = districts.map(d => `
         <div class="multi-select-item">
@@ -138,10 +125,10 @@ function applyFilters() {
     if (selStates.length > 0) filtered = filtered.filter(d => selStates.includes(d.state));
     if (selDists.length > 0) filtered = filtered.filter(d => selDists.includes(d.dist));
 
-    // Grouping to avoid duplicates in Chart
+    // Same city/state ko merge karo (Group by)
     let grouped = {};
     filtered.forEach(item => {
-        let key = item.dist + "-" + item.state;
+        let key = item.dist + "|" + item.state;
         if (!grouped[key]) grouped[key] = { ...item };
         else grouped[key].val = Math.max(grouped[key].val, item.val);
     });
